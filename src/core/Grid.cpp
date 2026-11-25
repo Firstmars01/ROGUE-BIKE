@@ -1,11 +1,15 @@
 // Module core.grid (implémentation) : code des fonctions de la classe Grid.
 // Interface : Grid.ixx
 module;
+// assert() pour la programmation par contrat (désactivé en Release par NDEBUG)
+#include <cassert>
 // Import rapide de la bibliothèque standard
 import std;
 
 // Unité d'implémentation du module core.grid
 module core.grid;
+
+import core.exceptions;
 
 namespace core {
 
@@ -66,16 +70,18 @@ namespace core {
         return tiles;
     }
 
-    // Lève std::invalid_argument si value <= 0, sinon renvoie value
+    // Lève InvalidDimensionException si value <= 0, sinon renvoie value
     int Grid::ValidateDimension(const int value) {
         if (value <= 0) {
-            throw std::invalid_argument{"Les dimensions de la grille doivent etre strictement positives"};
+            throw InvalidDimensionException{"Les dimensions de la grille doivent etre strictement positives"};
         }
         return value;
     }
 
     // Index 1D d'une position supposée valide : y * largeur + x
     std::size_t Grid::ToIndex(const GridPos pos) const noexcept {
+        // Précondition : les appelants vérifient les bornes avant de convertir
+        assert(IsInBounds(pos));
         return static_cast<std::size_t>(pos.y) * static_cast<std::size_t>(width)
                + static_cast<std::size_t>(pos.x);
     }

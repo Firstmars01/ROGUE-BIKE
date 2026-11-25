@@ -7,6 +7,7 @@
 
 import core.grid;
 import core.dungeonGenerator;
+import core.exceptions;
 
 using namespace core;
 
@@ -52,6 +53,19 @@ static int CountTiles(const Grid& grid, const TileType type) {
     return count;
 }
 
+TEST_CASE("Room conserve sa position et ses dimensions", "[room]") {
+    const auto room = Room{2, 3, 6, 4};
+    REQUIRE(room.GetX() == 2);
+    REQUIRE(room.GetY() == 3);
+    REQUIRE(room.GetWidth() == 6);
+    REQUIRE(room.GetHeight() == 4);
+}
+
+TEST_CASE("Room refuse des dimensions invalides", "[room]") {
+    REQUIRE_THROWS_AS((Room{0, 0, 0, 4}), InvalidDimensionException);
+    REQUIRE_THROWS_AS((Room{0, 0, 4, -2}), InvalidDimensionException);
+}
+
 TEST_CASE("Room::Center renvoie la case centrale", "[room]") {
     const auto room = Room{2, 3, 6, 4};
     REQUIRE(room.Center() == GridPos{5, 5});
@@ -93,7 +107,7 @@ TEST_CASE("Le donjon genere a les dimensions demandees", "[dungeon]") {
 
 TEST_CASE("Une carte trop petite est refusee", "[dungeon]") {
     auto generator = DungeonGenerator{42};
-    REQUIRE_THROWS_AS(generator.Generate(5, 30), std::invalid_argument);
+    REQUIRE_THROWS_AS(generator.Generate(5, 30), InvalidDimensionException);
 }
 
 TEST_CASE("Les salles respectent les regles de placement", "[dungeon]") {
@@ -107,14 +121,14 @@ TEST_CASE("Les salles respectent les regles de placement", "[dungeon]") {
 
     for (auto i = std::size_t{0}; i < rooms.size(); ++i) {
         // Taille autorisée et bordure de murs conservée
-        REQUIRE(rooms[i].width >= DungeonGenerator::minRoomSize);
-        REQUIRE(rooms[i].width <= DungeonGenerator::maxRoomSize);
-        REQUIRE(rooms[i].height >= DungeonGenerator::minRoomSize);
-        REQUIRE(rooms[i].height <= DungeonGenerator::maxRoomSize);
-        REQUIRE(rooms[i].x >= 1);
-        REQUIRE(rooms[i].y >= 1);
-        REQUIRE(rooms[i].x + rooms[i].width <= 39);
-        REQUIRE(rooms[i].y + rooms[i].height <= 29);
+        REQUIRE(rooms[i].GetWidth() >= DungeonGenerator::minRoomSize);
+        REQUIRE(rooms[i].GetWidth() <= DungeonGenerator::maxRoomSize);
+        REQUIRE(rooms[i].GetHeight() >= DungeonGenerator::minRoomSize);
+        REQUIRE(rooms[i].GetHeight() <= DungeonGenerator::maxRoomSize);
+        REQUIRE(rooms[i].GetX() >= 1);
+        REQUIRE(rooms[i].GetY() >= 1);
+        REQUIRE(rooms[i].GetX() + rooms[i].GetWidth() <= 39);
+        REQUIRE(rooms[i].GetY() + rooms[i].GetHeight() <= 29);
 
         // Aucun chevauchement entre salles
         for (auto j = i + 1; j < rooms.size(); ++j) {

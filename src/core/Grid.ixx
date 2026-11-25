@@ -33,8 +33,8 @@ export namespace core {
     public:
         // Crée une grille remplie de TileType::Empty.
         // width, height : dimensions en cases, strictement positives.
-        // Lève std::invalid_argument si une dimension est nulle ou négative.
-        Grid(int width, int height);
+        // Lève core::InvalidDimensionException si une dimension est nulle ou négative.
+        Grid(const int width, const int height);
 
         // Renvoie la largeur de la grille en cases
         int GetWidth() const noexcept;
@@ -43,31 +43,32 @@ export namespace core {
         int GetHeight() const noexcept;
 
         // Indique si pos est à l'intérieur de la grille
-        bool IsInBounds(GridPos pos) const noexcept;
+        bool IsInBounds(const GridPos pos) const noexcept;
 
         // Renvoie le type de la tuile en pos, ou std::nullopt si pos est hors de la grille
-        std::optional<TileType> GetTile(GridPos pos) const;
+        std::optional<TileType> GetTile(const GridPos pos) const;
 
         // Remplace la tuile en pos par type.
         // Renvoie true si la modification a eu lieu, false si pos est hors de la grille.
-        bool SetTile(GridPos pos, TileType type);
+        bool SetTile(const GridPos pos, const TileType type);
 
         // Remplit toute la grille avec le type donné
-        void Fill(TileType type);
+        void Fill(const TileType type);
 
         // Indique si une entité peut se tenir en pos (sol ou escalier, dans les bornes)
-        bool IsWalkable(GridPos pos) const;
+        bool IsWalkable(const GridPos pos) const;
 
         // Renvoie une vue en lecture seule sur toutes les tuiles (ordre ligne par ligne)
         std::span<const TileType> GetTiles() const noexcept;
 
     private:
         // Vérifie qu'une dimension est strictement positive et la renvoie.
-        // Lève std::invalid_argument sinon.
-        static int ValidateDimension(int value);
+        // Lève core::InvalidDimensionException sinon.
+        static int ValidateDimension(const int value);
 
-        // Convertit une position (déjà vérifiée dans les bornes) en index du tableau 1D
-        std::size_t ToIndex(GridPos pos) const noexcept;
+        // Convertit une position en index du tableau 1D.
+        // Précondition (vérifiée par assert en Debug) : pos est dans les bornes.
+        std::size_t ToIndex(const GridPos pos) const noexcept;
 
         int width{};
         int height{};

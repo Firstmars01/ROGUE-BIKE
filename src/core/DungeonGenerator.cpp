@@ -7,11 +7,39 @@ import std;
 // Unité d'implémentation du module core.dungeonGenerator
 module core.dungeonGenerator;
 
-import core.grid;
+import core.exceptions;
 
 namespace core {
 
     // ----- Room -----
+
+    // Mémorise la position et les dimensions (strictement positives)
+    Room::Room(const int x, const int y, const int width, const int height)
+        : x{x}, y{y}, width{width}, height{height} {
+        if (width <= 0 || height <= 0) {
+            throw InvalidDimensionException{"Les dimensions d'une salle doivent etre strictement positives"};
+        }
+    }
+
+    // Colonne du coin haut-gauche
+    int Room::GetX() const noexcept {
+        return x;
+    }
+
+    // Ligne du coin haut-gauche
+    int Room::GetY() const noexcept {
+        return y;
+    }
+
+    // Largeur en cases
+    int Room::GetWidth() const noexcept {
+        return width;
+    }
+
+    // Hauteur en cases
+    int Room::GetHeight() const noexcept {
+        return height;
+    }
 
     // Case centrale de la salle
     GridPos Room::Center() const noexcept {
@@ -37,7 +65,7 @@ namespace core {
     // Génère un étage : salles, couloirs, escalier, puis murs
     Dungeon DungeonGenerator::Generate(const int width, const int height) {
         if (width < minMapSize || height < minMapSize) {
-            throw std::invalid_argument{"Carte trop petite pour generer un donjon"};
+            throw InvalidDimensionException{"Carte trop petite pour generer un donjon"};
         }
 
         auto grid = Grid{width, height};
@@ -98,8 +126,8 @@ namespace core {
 
     // Toutes les cases de la salle deviennent du sol
     void DungeonGenerator::CarveRoom(Grid& grid, const Room& room) {
-        for (auto y = room.y; y < room.y + room.height; ++y) {
-            for (auto x = room.x; x < room.x + room.width; ++x) {
+        for (auto y = room.GetY(); y < room.GetY() + room.GetHeight(); ++y) {
+            for (auto x = room.GetX(); x < room.GetX() + room.GetWidth(); ++x) {
                 grid.SetTile(GridPos{x, y}, TileType::Floor);
             }
         }
@@ -134,7 +162,7 @@ namespace core {
     GridPos DungeonGenerator::ChooseStairs(const std::vector<Room>& rooms) {
         if (rooms.size() == 1) {
             const auto& room = rooms.front();
-            return GridPos{room.x + room.width - 1, room.y + room.height - 1};
+            return GridPos{room.GetX() + room.GetWidth() - 1, room.GetY() + room.GetHeight() - 1};
         }
         return rooms.back().Center();
     }

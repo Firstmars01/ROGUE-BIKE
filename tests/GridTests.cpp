@@ -2,6 +2,7 @@
 #include <catch2/catch_all.hpp>
 
 import core.grid;
+import core.exceptions;
 
 using namespace core;
 
@@ -27,8 +28,8 @@ TEST_CASE("Une nouvelle grille a les bonnes dimensions et est vide", "[grid]") {
 }
 
 TEST_CASE("Des dimensions invalides sont refusees", "[grid]") {
-    REQUIRE_THROWS_AS((Grid{0, 10}), std::invalid_argument);
-    REQUIRE_THROWS_AS((Grid{10, -1}), std::invalid_argument);
+    REQUIRE_THROWS_AS((Grid{0, 10}), InvalidDimensionException);
+    REQUIRE_THROWS_AS((Grid{10, -1}), InvalidDimensionException);
 }
 
 TEST_CASE("IsInBounds detecte les positions hors de la grille", "[grid]") {
