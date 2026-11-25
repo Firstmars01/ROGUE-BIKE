@@ -175,6 +175,29 @@ TEST_CASE("Les bords de la carte ne sont jamais praticables", "[dungeon]") {
     }
 }
 
+TEST_CASE("Les murs entre deux zones praticables font une seule case d'epaisseur", "[dungeon]") {
+    const auto seed = GENERATE(range(0u, 50u));
+    auto generator = DungeonGenerator{seed};
+    const auto dungeon = generator.Generate(40, 30);
+    const auto& grid = dungeon.grid;
+
+    // Aucun motif sol / mur / mur / sol, ni horizontal ni vertical
+    for (auto y = 0; y < grid.GetHeight(); ++y) {
+        for (auto x = 0; x < grid.GetWidth(); ++x) {
+            const auto horizontal = grid.IsWalkable(GridPos{x, y})
+                                    && grid.GetTile(GridPos{x + 1, y}) == TileType::Wall
+                                    && grid.GetTile(GridPos{x + 2, y}) == TileType::Wall
+                                    && grid.IsWalkable(GridPos{x + 3, y});
+            const auto vertical = grid.IsWalkable(GridPos{x, y})
+                                  && grid.GetTile(GridPos{x, y + 1}) == TileType::Wall
+                                  && grid.GetTile(GridPos{x, y + 2}) == TileType::Wall
+                                  && grid.IsWalkable(GridPos{x, y + 3});
+            REQUIRE_FALSE(horizontal);
+            REQUIRE_FALSE(vertical);
+        }
+    }
+}
+
 TEST_CASE("Une meme graine produit le meme donjon", "[dungeon]") {
     auto first = DungeonGenerator{1234};
     auto second = DungeonGenerator{1234};

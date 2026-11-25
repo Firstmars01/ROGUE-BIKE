@@ -9,6 +9,7 @@ import std;
 export module ui.renderer;
 
 import core.grid;
+import core.dungeonGenerator;
 import ui.isoMath;
 
 export namespace ui {
@@ -26,12 +27,13 @@ export namespace ui {
         // Renvoie la position écran du centre de la case (0, 0)
         ScreenPos GetOrigin() const noexcept;
 
-        // Dessine toute la grille dans l'ordre du peintre (x + y croissant),
+        // Dessine tout l'étage dans l'ordre du peintre (x + y croissant),
         // pour que les cases proches de la caméra recouvrent celles du fond.
+        // Les murs de premier plan qui cacheraient un couloir (case hors salle) sont dessinés bas.
         // À appeler entre BeginDrawing() et EndDrawing().
-        void DrawGrid(const core::Grid& grid) const;
+        void DrawDungeon(const core::Dungeon& dungeon) const;
 
-        // Dessine une seule case selon son type (rien pour TileType::Empty)
+        // Dessine une seule case selon son type (rien pour TileType::Empty), murs à pleine hauteur
         void DrawTile(const core::GridPos pos, const core::TileType type) const;
 
     private:

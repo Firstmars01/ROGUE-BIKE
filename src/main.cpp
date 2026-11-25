@@ -1,26 +1,16 @@
-// Point d'entrée du jeu Rogue Bike.
-// Jour 0 : ouvre une fenêtre raylib vide pour valider la toolchain (Clang + CMake + raylib).
-#include <raylib.h>
+// Point d'entrée du jeu Rogue Bike : crée l'application et lance la boucle principale.
+import std;
+import ui.application;
 
-import core.config;
-
-// Ouvre la fenêtre, exécute la boucle d'affichage jusqu'à la fermeture, puis libère la fenêtre.
-// Renvoie 0 en cas de sortie normale.
+// Lance le jeu. Renvoie 0 en cas de sortie normale, 1 en cas d'erreur fatale.
 int main() {
-    // Création de la fenêtre avec les paramètres du module core.config
-    InitWindow(core::windowWidth, core::windowHeight, core::windowTitle.data());
-    SetTargetFPS(core::targetFps);
-
-    // Boucle principale : tourne jusqu'à Échap ou clic sur la croix
-    while (!WindowShouldClose()) {
-        BeginDrawing();
-        ClearBackground(BLACK);
-        // Pas d'accents : la police par défaut de raylib ne les gère pas
-        DrawText("Rogue Bike", 20, 20, 20, RAYWHITE);
-        EndDrawing();
+    try {
+        auto application = ui::Application{};
+        application.Run();
+    } catch (const std::exception& exception) {
+        // Message générique : aucune information interne n'est exposée à l'utilisateur
+        std::cerr << "Erreur fatale : " << exception.what() << '\n';
+        return 1;
     }
-
-    // Libération des ressources graphiques
-    CloseWindow();
     return 0;
 }

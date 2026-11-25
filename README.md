@@ -29,8 +29,9 @@ Le joueur explore des étages de donjon générés procéduralement, combat des 
 │   │   └── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, couloirs en L, escalier
 │   ├── ui/                 # Affichage (bibliothèque rogueUi)
 │   │   ├── IsoMath.ixx     # ui.isoMath : projection isométrique constexpr (tuiles 32x16)
-│   │   └── Renderer.ixx / Renderer.cpp # ui.renderer : dessin raylib (sol, murs en relief, escalier)
-│   └── main.cpp            # Point d'entrée : fenêtre et boucle raylib
+│   │   ├── Renderer.ixx / Renderer.cpp       # ui.renderer : dessin raylib (sol, murs en relief, escalier)
+│   │   └── Application.ixx / Application.cpp # ui.application : fenêtre RAII, boucle, clavier
+│   └── main.cpp            # Point d'entrée : crée l'application et la lance
 └── tests/                  # Tests unitaires Catch2 (logique métier uniquement)
     ├── ConfigTests.cpp
     ├── GridTests.cpp
@@ -62,7 +63,10 @@ Prévu : les modules `core.entities`, `core.game`, `core.pathfinding`.
 
 ## Exemples d'utilisation
 
-- Lancer `RogueBike` : une fenêtre 1280x720 s'ouvre. `Échap` ou la croix pour quitter.
+- Lancer `RogueBike` : le donjon s'affiche en vue isométrique dans une fenêtre 1280x720.
+- `R` : génère le donjon suivant (graine + 1, affichée en haut à gauche).
+- `Échap` ou la croix : quitter.
+- Les murs font toujours une seule case d'épaisseur ; les murs placés devant un couloir sont dessinés bas pour le laisser visible.
 - Le donjon de démo est toujours le même (carte 40x30, graine fixe `dungeonSeed` dans `core.config`).
 - Lancer `tests` : Catch2 affiche le résultat des tests (`All tests passed`).
 
@@ -78,7 +82,8 @@ Prévu : les modules `core.entities`, `core.game`, `core.pathfinding`.
 ## Sécurité
 
 - Avertissements traités comme des erreurs (`-Werror`) sur tout le code du projet.
-- Aucune allocation manuelle : gestion mémoire en RAII (`std::unique_ptr`, conteneurs STL).
+- Aucune allocation manuelle : gestion mémoire en RAII (`std::unique_ptr`, conteneurs STL) ; la fenêtre raylib est ouverte et fermée par `ui::Application` (RAII, non copiable).
+- Les erreurs fatales sont attrapées dans `main` et affichées avec un message court, sans détail interne.
 - Accès à la grille avec vérification des bornes (`std::optional`) pour éviter les dépassements mémoire.
 - Dimensions invalides (grille, carte, salle) refusées par une exception dédiée `core::InvalidDimensionException`.
 - Programmation par contrat : `assert` sur les préconditions internes (actif en Debug).

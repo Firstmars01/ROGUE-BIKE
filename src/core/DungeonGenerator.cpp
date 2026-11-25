@@ -83,8 +83,13 @@ namespace core {
         const auto stairs = ChooseStairs(rooms);
         grid.SetTile(stairs, TileType::Stairs);
 
-        // Les murs sont ajoutés en dernier, uniquement autour des zones praticables
+        // Les murs sont ajoutés en dernier, uniquement autour des zones praticables,
+        // puis amincis à une case d'épaisseur (et refermés si besoin)
         AddWallsAroundFloors(grid);
+        // Chaque correction peut faire apparaître un nouveau motif : on répète jusqu'à stabilité
+        for (auto pass = 0; pass < maxThinningPasses && ThinDoubleWalls(grid, rooms); ++pass) {
+            AddWallsAroundFloors(grid);
+        }
 
         return Dungeon{std::move(grid), rooms, playerStart, stairs};
     }
@@ -177,6 +182,35 @@ namespace core {
                 }
             }
         }
+    }
+
+    // Cherche les motifs sol / mur / mur / sol vers la droite et vers le bas de chaque case
+    bool DungeonGenerator::ThinDoubleWalls(Grid& grid, const std::vector<Room>& rooms) {
+        auto changed = false;
+        constexpr auto directions = std::array<GridPos, 2>{{{1, 0}, {0, 1}}};
+        for (auto y = 0; y < grid.GetHeight(); ++y) {
+            for (auto x = 0; x < grid.GetWidth(); ++x) {
+                for (const auto& direction : directions) {
+                    const auto first = GridPos{x, y};
+                    const auto wall1 = GridPos{x + direction.x, y + direction.y};
+                    const auto wall2 = GridPos{x + 2 * direction.x, y + 2 * direction.y};
+                    const auto last = GridPos{x + 3 * direction.x, y + 3 * direction.y};
+                    if (grid.IsWalkable(first) && grid.GetTile(wall1) == TileType::Wall
+                        && grid.GetTile(wall2) == TileType::Wall && grid.IsWalkable(last)) {
+                        // On élargit le couloir plutôt que la salle
+                        const auto widenLastSide = IsInAnyRoom(rooms, first) && !IsInAnyRoom(rooms, last);
+                        grid.SetTile(widenLastSide ? wall2 : wall1, TileType::Floor);
+                        changed = true;
+                    }
+                }
+            }
+        }
+        return changed;
+    }
+
+    // Vrai si une des salles contient pos
+    bool DungeonGenerator::IsInAnyRoom(const std::vector<Room>& rooms, const GridPos pos) {
+        return std::ranges::any_of(rooms, [pos](const Room& room) { return room.Contains(pos); });
     }
 
     // Parcourt les 8 voisins de pos à la recherche d'une case praticable

@@ -72,6 +72,8 @@ export namespace core {
         static constexpr int maxPlacementAttempts{200};
         // Dimension minimale de la carte pour contenir une salle entourée de murs
         static constexpr int minMapSize{maxRoomSize + 2};
+        // Nombre maximal de passes d'amincissement des murs (garde-fou contre une boucle infinie)
+        static constexpr int maxThinningPasses{10};
 
         // Crée un générateur. seed : graine du générateur aléatoire (même seed = même donjon)
         explicit DungeonGenerator(const std::uint32_t seed);
@@ -112,6 +114,14 @@ export namespace core {
 
         // Transforme en mur chaque case vide voisine (8 directions) d'une case praticable
         static void AddWallsAroundFloors(Grid& grid);
+
+        // Supprime les murs de 2 cases d'épaisseur : dans chaque motif sol / mur / mur / sol
+        // (horizontal ou vertical), un des deux murs devient du sol, de préférence côté couloir.
+        // Renvoie true si au moins un mur a été transformé.
+        static bool ThinDoubleWalls(Grid& grid, const std::vector<Room>& rooms);
+
+        // Indique si pos appartient à l'une des salles
+        static bool IsInAnyRoom(const std::vector<Room>& rooms, const GridPos pos);
 
         // Indique si au moins une des 8 cases voisines de pos est praticable
         static bool HasWalkableNeighbour(const Grid& grid, const GridPos pos);

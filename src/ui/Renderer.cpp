@@ -24,6 +24,9 @@ namespace ui {
         constexpr Color stairsColor{214, 170, 60, 255};
         constexpr Color stairsInnerColor{120, 86, 30, 255};
 
+        // Hauteur d'un mur coupé (mur de premier plan qui cacherait un couloir)
+        constexpr float lowWallHeight{4.0f};
+
         // Les 4 sommets d'un losange isométrique
         struct Diamond {
             Vector2 top{};
@@ -96,14 +99,31 @@ namespace ui {
             OutlineDiamond(diamond, floorOutlineColor);
         }
 
-        // Dessine un mur en relief : face gauche, face droite, puis dessus surélevé de wallHeight
-        void DrawWall(const ScreenPos center) {
+        // Dessine un mur en relief : face gauche, face droite, puis dessus surélevé de height pixels
+        void DrawWall(const ScreenPos center, const float height) {
             const auto base = MakeDiamond(center, 1.0f);
-            const auto top = Raise(base, -wallHeight);
+            const auto top = Raise(base, -height);
             FillQuad(top.left, top.bottom, base.bottom, base.left, wallLeftColor);
             FillQuad(top.bottom, top.right, base.right, base.bottom, wallRightColor);
             FillDiamond(top, wallTopColor);
             OutlineDiamond(top, wallRightColor);
+        }
+
+        // Indique si pos est une case de couloir : praticable et en dehors de toutes les salles
+        bool IsCorridorTile(const core::Dungeon& dungeon, const core::GridPos pos) {
+            return dungeon.grid.IsWalkable(pos)
+                   && std::ranges::none_of(dungeon.rooms, [pos](const core::Room& room) {
+                          return room.Contains(pos);
+                      });
+        }
+
+        // Indique si un mur en pos, dessiné à pleine hauteur, cacherait une case de couloir.
+        // Le bloc surélevé recouvre à l'écran les cases situées derrière lui :
+        // (x - 1, y - 1) entièrement, (x - 1, y) et (x, y - 1) en partie.
+        bool HidesCorridorTile(const core::Dungeon& dungeon, const core::GridPos pos) {
+            return IsCorridorTile(dungeon, core::GridPos{pos.x - 1, pos.y - 1})
+                   || IsCorridorTile(dungeon, core::GridPos{pos.x - 1, pos.y})
+                   || IsCorridorTile(dungeon, core::GridPos{pos.x, pos.y - 1});
         }
 
     }
@@ -118,7 +138,8 @@ namespace ui {
     }
 
     // Parcours par diagonales : sum = x + y croissant (ordre du peintre)
-    void Renderer::DrawGrid(const core::Grid& grid) const {
+    void Renderer::DrawDungeon(const core::Dungeon& dungeon) const {
+        const auto& grid = dungeon.grid;
         const auto width = grid.GetWidth();
         const auto height = grid.GetHeight();
         for (auto sum = 0; sum <= width + height - 2; ++sum) {
@@ -127,7 +148,11 @@ namespace ui {
             const auto lastX = std::min(sum, width - 1);
             for (auto x = firstX; x <= lastX; ++x) {
                 const auto pos = core::GridPos{x, sum - x};
-                if (const auto tile = grid.GetTile(pos)) {
+                const auto tile = grid.GetTile(pos);
+                if (tile == core::TileType::Wall && HidesCorridorTile(dungeon, pos)) {
+                    // Mur de premier plan devant un couloir : coupé pour laisser voir le chemin
+                    DrawWall(GridToScreen(pos, origin), lowWallHeight);
+                } else if (tile) {
                     DrawTile(pos, *tile);
                 }
             }
@@ -142,7 +167,7 @@ namespace ui {
                 DrawFloor(center);
                 break;
             case core::TileType::Wall:
-                DrawWall(center);
+                DrawWall(center, wallHeight);
                 break;
             case core::TileType::Stairs:
                 DrawStairs(center);
