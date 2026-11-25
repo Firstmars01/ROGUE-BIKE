@@ -2,8 +2,9 @@
 #
 # Cibles générées :
 #   - rogueCore : bibliothèque de logique métier, SANS dépendance graphique
-#   - RogueBike : exécutable du jeu (rogueCore + raylib)
-#   - tests     : tests unitaires Catch2 (rogueCore uniquement)
+#   - rogueUi   : bibliothèque d'affichage (projection isométrique, rendu raylib)
+#   - RogueBike : exécutable du jeu (rogueCore + rogueUi + raylib)
+#   - tests     : tests unitaires Catch2 (logique métier et mathématiques de projection)
 cmake_minimum_required(VERSION 3.29)
 
 # Nom du projet et de l'exécutable généré
@@ -49,15 +50,29 @@ target_sources(rogueCore
 )
 compile_options(rogueCore)
 
-# --- Exécutable principal : seul endroit où raylib est utilisée ---
+# --- Bibliothèque ui : affichage, seule partie (avec main.cpp) autorisée à utiliser raylib ---
+file(GLOB UI_SRC_FILES CONFIGURE_DEPENDS "${SRC_DIR}/ui/*.cpp")
+file(GLOB UI_MODULE_FILES CONFIGURE_DEPENDS "${SRC_DIR}/ui/*.ixx")
+
+add_library(rogueUi STATIC ${UI_SRC_FILES})
+target_sources(rogueUi
+        PUBLIC
+        FILE_SET CXX_MODULES
+        FILES
+        ${UI_MODULE_FILES}
+)
+compile_options(rogueUi)
+target_link_libraries(rogueUi rogueCore raylib)
+
+# --- Exécutable principal ---
 add_executable(${PROJECT_NAME} ${SRC_DIR}/main.cpp)
 compile_options(${PROJECT_NAME})
-target_link_libraries(${PROJECT_NAME} rogueCore raylib)
+target_link_libraries(${PROJECT_NAME} rogueCore rogueUi raylib)
 
-# --- Tests unitaires : uniquement la logique métier, jamais raylib ---
+# --- Tests unitaires : logique métier + fonctions pures de rogueUi (ui.isoMath, sans appel raylib) ---
 file(GLOB TEST_FILES CONFIGURE_DEPENDS "${TESTS_DIR}/*.cpp")
 add_executable(tests ${TEST_FILES})
-target_link_libraries(tests PRIVATE rogueCore Catch2::Catch2WithMain std-cxx-modules)
+target_link_libraries(tests PRIVATE rogueCore rogueUi Catch2::Catch2WithMain std-cxx-modules)
 include(CTest)
 include(Catch)
 catch_discover_tests(tests)

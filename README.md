@@ -15,7 +15,7 @@ Le joueur explore des étages de donjon générés procéduralement, combat des 
 
 ```
 .
-├── CMakeLists.txt          # Cibles : rogueCore, RogueBike, tests
+├── CMakeLists.txt          # Cibles : rogueCore, rogueUi, RogueBike, tests
 ├── cmake/
 │   ├── std.cmake           # Compilation de la bibliothèque standard en module (modèle du cours)
 │   ├── compile_options.cmake
@@ -27,14 +27,17 @@ Le joueur explore des étages de donjon générés procéduralement, combat des 
 │   │   ├── Exceptions.ixx / Exceptions.cpp             # core.exceptions : InvalidDimensionException
 │   │   ├── Grid.ixx / Grid.cpp                         # core.grid : GridPos, TileType, Grid (accès vérifiés)
 │   │   └── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, couloirs en L, escalier
+│   ├── ui/                 # Affichage (bibliothèque rogueUi)
+│   │   └── IsoMath.ixx     # ui.isoMath : projection isométrique constexpr (tuiles 32x16)
 │   └── main.cpp            # Point d'entrée : fenêtre et boucle raylib
 └── tests/                  # Tests unitaires Catch2 (logique métier uniquement)
     ├── ConfigTests.cpp
     ├── GridTests.cpp
-    └── DungeonGeneratorTests.cpp
+    ├── DungeonGeneratorTests.cpp
+    └── IsoMathTests.cpp
 ```
 
-Prévu : `src/ui/` (rendu isométrique raylib), puis les modules `core.entities`, `core.game`, `core.pathfinding`.
+Prévu : `ui.renderer` (dessin isométrique raylib), puis les modules `core.entities`, `core.game`, `core.pathfinding`.
 
 ## Installation
 
@@ -66,7 +69,7 @@ Prévu : `src/ui/` (rendu isométrique raylib), puis les modules `core.entities`
 
 - Classes et fonctions en `CamelCase` (1re majuscule)
 - Modules, espaces de noms, données, paramètres et variables en `camelCase`, sans préfixe
-- Chaque module est séparé en interface `.ixx` (déclarations commentées) et implémentation `.cpp` (`module nom;`) ; seules les constantes `constexpr` restent dans l'interface
+- Chaque module est séparé en interface `.ixx` (déclarations commentées) et implémentation `.cpp` (`module nom;`) ; seules les constantes et fonctions `constexpr` restent dans l'interface
 - `struct` uniquement pour les données sans code (`GridPos`, `Dungeon`), `class` pour le reste
 - `const` sur les paramètres, y compris dans les déclarations des `.ixx`
 - Initialisation `{}`, `auto`, `const` dès que possible, aucun `new`/`delete`
