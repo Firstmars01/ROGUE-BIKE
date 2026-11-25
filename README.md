@@ -28,7 +28,8 @@ Le joueur explore des étages de donjon générés procéduralement, combat des 
 │   │   ├── Grid.ixx / Grid.cpp                         # core.grid : GridPos, TileType, Grid (accès vérifiés)
 │   │   └── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, couloirs en L, escalier
 │   ├── ui/                 # Affichage (bibliothèque rogueUi)
-│   │   └── IsoMath.ixx     # ui.isoMath : projection isométrique constexpr (tuiles 32x16)
+│   │   ├── IsoMath.ixx     # ui.isoMath : projection isométrique constexpr (tuiles 32x16)
+│   │   └── Renderer.ixx / Renderer.cpp # ui.renderer : dessin raylib (sol, murs en relief, escalier)
 │   └── main.cpp            # Point d'entrée : fenêtre et boucle raylib
 └── tests/                  # Tests unitaires Catch2 (logique métier uniquement)
     ├── ConfigTests.cpp
@@ -37,7 +38,7 @@ Le joueur explore des étages de donjon générés procéduralement, combat des 
     └── IsoMathTests.cpp
 ```
 
-Prévu : `ui.renderer` (dessin isométrique raylib), puis les modules `core.entities`, `core.game`, `core.pathfinding`.
+Prévu : les modules `core.entities`, `core.game`, `core.pathfinding`.
 
 ## Installation
 
