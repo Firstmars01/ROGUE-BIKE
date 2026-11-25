@@ -23,13 +23,15 @@ Le joueur explore des étages de donjon générés procéduralement, combat des 
 │   └── catch2.cmake        # Téléchargement de Catch2
 ├── src/
 │   ├── core/               # Logique métier, SANS dépendance graphique
-│   │   └── Config.ixx      # Module core.config : constantes du jeu
+│   │   ├── Config.ixx      # Module core.config : constantes du jeu
+│   │   └── Grid.ixx        # Module core.grid : GridPos, TileType, Grid (accès vérifiés)
 │   └── main.cpp            # Point d'entrée : fenêtre et boucle raylib
 └── tests/                  # Tests unitaires Catch2 (logique métier uniquement)
-    └── ConfigTests.cpp
+    ├── ConfigTests.cpp
+    └── GridTests.cpp
 ```
 
-Prévu : `src/ui/` (rendu isométrique raylib), puis les modules `core.grid`, `core.dungeonGenerator`, `core.entities`, `core.game`, `core.pathfinding`.
+Prévu : `src/ui/` (rendu isométrique raylib), puis les modules `core.dungeonGenerator`, `core.entities`, `core.game`, `core.pathfinding`.
 
 ## Installation
 

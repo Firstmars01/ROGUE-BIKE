@@ -16,7 +16,7 @@ int main() {
         BeginDrawing();
         ClearBackground(BLACK);
         // Pas d'accents : la police par défaut de raylib ne les gère pas
-        DrawText("Rogue Bike - Jour 0 : fenetre OK", 20, 20, 20, RAYWHITE);
+        DrawText("Rogue Bike", 20, 20, 20, RAYWHITE);
         EndDrawing();
     }
 
