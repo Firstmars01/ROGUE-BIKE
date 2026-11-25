@@ -65,8 +65,8 @@ namespace core {
         return tile == TileType::Floor || tile == TileType::Stairs;
     }
 
-    // Vue en lecture seule sur le tableau 1D des tuiles
-    std::span<const TileType> Grid::GetTiles() const noexcept {
+    // Référence constante sur le tableau 1D des tuiles (aucune copie)
+    const std::vector<TileType>& Grid::GetTiles() const noexcept {
         return tiles;
     }
 

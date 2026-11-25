@@ -1,5 +1,4 @@
 // Module ui.application (interface) : application du jeu (fenêtre, boucle principale, entrées).
-// La fenêtre est gérée en RAII : ouverte par le constructeur, fermée par le destructeur.
 // L'interface ne dépend pas de raylib : seul Application.cpp l'utilise.
 // Implémentation : Application.cpp
 module;
@@ -10,25 +9,18 @@ import std;
 export module ui.application;
 
 import core.dungeonGenerator;
+import ui.window;
 import ui.renderer;
 
 export namespace ui {
 
-    // Application principale : possède la fenêtre, l'étage courant et le renderer
+    // Application principale : possède la fenêtre, l'étage courant et le renderer.
+    // Non copiable (la fenêtre ne l'est pas) ; ressources libérées automatiquement (RAII).
     class Application {
     public:
-        // Ouvre la fenêtre et génère le donjon de démo (graine core::dungeonSeed).
-        // Lève std::runtime_error si la fenêtre ne peut pas être créée.
+        // Ouvre la fenêtre, charge les sprites et génère le donjon de démo (graine core::dungeonSeed).
+        // Lève std::runtime_error si la fenêtre ou un sprite ne peut pas être chargé.
         Application();
-
-        // Ferme la fenêtre (libération RAII)
-        ~Application();
-
-        // Une seule fenêtre : ni copie ni déplacement
-        Application(const Application&) = delete;
-        Application& operator=(const Application&) = delete;
-        Application(Application&&) = delete;
-        Application& operator=(Application&&) = delete;
 
         // Exécute la boucle principale jusqu'à la fermeture de la fenêtre (Échap ou croix)
         void Run();
@@ -44,6 +36,12 @@ export namespace ui {
         // seed : graine du générateur. Renvoie le donjon généré.
         static core::Dungeon CreateDungeon(const std::uint32_t seed);
 
+        // Renvoie le dossier des sprites, copié à côté de l'exécutable par CMake
+        static std::filesystem::path SpritesDirectory();
+
+        // L'ordre compte : la fenêtre (contexte graphique) est créée avant le renderer (textures)
+        // et détruite après lui
+        Window window;
         std::uint32_t seed;
         core::Dungeon dungeon;
         Renderer renderer;

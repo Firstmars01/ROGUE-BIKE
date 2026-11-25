@@ -1,4 +1,4 @@
-// Module ui.renderer (implémentation) : dessin des tuiles avec raylib.
+// Module ui.renderer (implémentation) : chargement des sprites (RAII) et dessin des tuiles avec raylib.
 // Interface : Renderer.ixx
 module;
 // raylib est incluse uniquement ici (fragment de module global) : elle reste invisible
@@ -12,102 +12,77 @@ module ui.renderer;
 
 namespace ui {
 
-    // Fonctions et constantes internes à ce fichier (non exportées)
+    // Texture raylib gérée en RAII : chargée par le constructeur, libérée par le destructeur
+    class TileSprite {
+    public:
+        // Charge l'image file. Lève std::runtime_error si elle est introuvable ou invalide.
+        explicit TileSprite(const std::filesystem::path& file) : texture{LoadTexture(file.string().c_str())} {
+            if (texture.id == 0) {
+                // Seul le nom du fichier est affiché, pas le chemin complet
+                throw std::runtime_error{std::format("Sprite introuvable : {}", file.filename().string())};
+            }
+        }
+
+        // Libère la texture de la mémoire graphique
+        ~TileSprite() {
+            UnloadTexture(texture);
+        }
+
+        TileSprite(const TileSprite&) = delete;
+        TileSprite& operator=(const TileSprite&) = delete;
+
+        // Dessine le sprite sur la case de centre center : le bas du sprite est aligné
+        // sur le sommet bas du losange, ce qui permet des sprites plus hauts qu'une tuile
+        void DrawOnTile(const ScreenPos center) const {
+            const auto position = Vector2{
+                center.x - halfTileWidth,
+                center.y + halfTileHeight - static_cast<float>(texture.height)
+            };
+            DrawTextureV(texture, position, WHITE);
+        }
+
+    private:
+        Texture2D texture;
+    };
+
+    // Toutes les textures utilisées par le renderer
+    struct Renderer::Sprites {
+        TileSprite asphalt;
+        TileSprite pavement;
+        TileSprite sidewalk;
+        TileSprite metro;
+        TileSprite brickBuilding;
+        TileSprite concreteBuilding;
+        TileSprite stuccoBuilding;
+
+        // Charge chaque sprite depuis directory
+        explicit Sprites(const std::filesystem::path& directory)
+            : asphalt{directory / "asphalt.png"},
+              pavement{directory / "pavement.png"},
+              sidewalk{directory / "sidewalk.png"},
+              metro{directory / "metro.png"},
+              brickBuilding{directory / "building_brick.png"},
+              concreteBuilding{directory / "building_concrete.png"},
+              stuccoBuilding{directory / "building_stucco.png"} {}
+
+        // Choisit une variante d'immeuble stable selon la position (même case = même immeuble)
+        const TileSprite& BuildingAt(const core::GridPos pos) const {
+            switch ((pos.x * 7 + pos.y * 13) % 3) {
+                case 0:
+                    return brickBuilding;
+                case 1:
+                    return concreteBuilding;
+                default:
+                    return stuccoBuilding;
+            }
+        }
+    };
+
+    // Fonctions internes à ce fichier (non exportées)
     namespace {
 
-        // Couleurs des tuiles
-        constexpr Color floorColor{92, 84, 78, 255};
-        constexpr Color floorOutlineColor{60, 54, 50, 255};
-        constexpr Color wallTopColor{150, 140, 128, 255};
-        constexpr Color wallLeftColor{105, 96, 88, 255};
-        constexpr Color wallRightColor{78, 70, 64, 255};
-        constexpr Color stairsColor{214, 170, 60, 255};
-        constexpr Color stairsInnerColor{120, 86, 30, 255};
-
-        // Hauteur d'un mur coupé (mur de premier plan qui cacherait un couloir)
-        constexpr float lowWallHeight{4.0f};
-
-        // Les 4 sommets d'un losange isométrique
-        struct Diamond {
-            Vector2 top{};
-            Vector2 left{};
-            Vector2 bottom{};
-            Vector2 right{};
-        };
-
-        // Calcule les sommets du losange de centre center, réduit d'un facteur scale (1 = taille d'une tuile)
-        Diamond MakeDiamond(const ScreenPos center, const float scale) {
-            const auto halfWidth = halfTileWidth * scale;
-            const auto halfHeight = halfTileHeight * scale;
-            return Diamond{
-                Vector2{center.x, center.y - halfHeight},
-                Vector2{center.x - halfWidth, center.y},
-                Vector2{center.x, center.y + halfHeight},
-                Vector2{center.x + halfWidth, center.y}
-            };
-        }
-
-        // Décale un losange verticalement de offsetY pixels (négatif = vers le haut)
-        Diamond Raise(const Diamond& diamond, const float offsetY) {
-            const auto shift = [offsetY](const Vector2 point) { return Vector2{point.x, point.y + offsetY}; };
-            return Diamond{shift(diamond.top), shift(diamond.left), shift(diamond.bottom), shift(diamond.right)};
-        }
-
-        // Dessine un triangle plein quel que soit l'ordre des sommets :
-        // raylib n'affiche que les triangles donnés dans le sens inverse des aiguilles d'une montre.
-        void FillTriangle(const Vector2 a, const Vector2 b, const Vector2 c, const Color color) {
-            const auto cross = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-            if (cross < 0.0f) {
-                DrawTriangle(a, b, c, color);
-            } else if (cross > 0.0f) {
-                DrawTriangle(a, c, b, color);
-            }
-            // cross == 0 : triangle plat, rien à dessiner
-        }
-
-        // Dessine un quadrilatère convexe plein (sommets donnés dans l'ordre du contour)
-        void FillQuad(const Vector2 a, const Vector2 b, const Vector2 c, const Vector2 d, const Color color) {
-            FillTriangle(a, b, c, color);
-            FillTriangle(a, c, d, color);
-        }
-
-        // Dessine un losange plein
-        void FillDiamond(const Diamond& diamond, const Color color) {
-            FillQuad(diamond.top, diamond.left, diamond.bottom, diamond.right, color);
-        }
-
-        // Dessine le contour d'un losange
-        void OutlineDiamond(const Diamond& diamond, const Color color) {
-            DrawLineV(diamond.top, diamond.left, color);
-            DrawLineV(diamond.left, diamond.bottom, color);
-            DrawLineV(diamond.bottom, diamond.right, color);
-            DrawLineV(diamond.right, diamond.top, color);
-        }
-
-        // Dessine une case de sol : losange plein et contour
-        void DrawFloor(const ScreenPos center) {
-            const auto diamond = MakeDiamond(center, 1.0f);
-            FillDiamond(diamond, floorColor);
-            OutlineDiamond(diamond, floorOutlineColor);
-        }
-
-        // Dessine l'escalier : losange doré avec un losange intérieur plus sombre
-        void DrawStairs(const ScreenPos center) {
-            const auto diamond = MakeDiamond(center, 1.0f);
-            FillDiamond(diamond, stairsColor);
-            FillDiamond(MakeDiamond(center, 0.5f), stairsInnerColor);
-            OutlineDiamond(diamond, floorOutlineColor);
-        }
-
-        // Dessine un mur en relief : face gauche, face droite, puis dessus surélevé de height pixels
-        void DrawWall(const ScreenPos center, const float height) {
-            const auto base = MakeDiamond(center, 1.0f);
-            const auto top = Raise(base, -height);
-            FillQuad(top.left, top.bottom, base.bottom, base.left, wallLeftColor);
-            FillQuad(top.bottom, top.right, base.right, base.bottom, wallRightColor);
-            FillDiamond(top, wallTopColor);
-            OutlineDiamond(top, wallRightColor);
-        }
+        // Nombre de rangées de cases qu'un immeuble (32 px de haut = 2 tuiles) recouvre à l'écran
+        constexpr int buildingRowsCovered{2};
 
         // Indique si pos est une case de couloir : praticable et en dehors de toutes les salles
         bool IsCorridorTile(const core::Dungeon& dungeon, const core::GridPos pos) {
@@ -117,20 +92,31 @@ namespace ui {
                       });
         }
 
-        // Indique si un mur en pos, dessiné à pleine hauteur, cacherait une case de couloir.
-        // Le bloc surélevé recouvre à l'écran les cases situées derrière lui :
-        // (x - 1, y - 1) entièrement, (x - 1, y) et (x, y - 1) en partie.
+        // Indique si un immeuble en pos cacherait une case de couloir.
+        // Il recouvre à l'écran les cases (x - i, y - j) situées derrière lui avec
+        // |i - j| <= 1 et i + j <= 2 * buildingRowsCovered.
         bool HidesCorridorTile(const core::Dungeon& dungeon, const core::GridPos pos) {
-            return IsCorridorTile(dungeon, core::GridPos{pos.x - 1, pos.y - 1})
-                   || IsCorridorTile(dungeon, core::GridPos{pos.x - 1, pos.y})
-                   || IsCorridorTile(dungeon, core::GridPos{pos.x, pos.y - 1});
+            for (auto i = 0; i <= buildingRowsCovered; ++i) {
+                for (auto j = 0; j <= buildingRowsCovered; ++j) {
+                    const auto behind = (i + j > 0) && std::abs(i - j) <= 1;
+                    if (behind && IsCorridorTile(dungeon, core::GridPos{pos.x - i, pos.y - j})) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
     }
 
-    // Calcule une fois l'origine qui centre la carte dans la fenêtre
-    Renderer::Renderer(const int mapWidth, const int mapHeight, const int screenWidth, const int screenHeight)
-        : origin{CenteredOrigin(mapWidth, mapHeight, screenWidth, screenHeight)} {}
+    // Charge les sprites et calcule une fois l'origine qui centre la carte
+    Renderer::Renderer(const int mapWidth, const int mapHeight, const int screenWidth, const int screenHeight,
+                       const std::filesystem::path& spritesDirectory)
+        : origin{CenteredOrigin(mapWidth, mapHeight, screenWidth, screenHeight)},
+          sprites{std::make_unique<Sprites>(spritesDirectory)} {}
+
+    // Défini ici car Sprites n'est complet que dans ce fichier
+    Renderer::~Renderer() = default;
 
     // Origine de la projection
     ScreenPos Renderer::GetOrigin() const noexcept {
@@ -148,33 +134,24 @@ namespace ui {
             const auto lastX = std::min(sum, width - 1);
             for (auto x = firstX; x <= lastX; ++x) {
                 const auto pos = core::GridPos{x, sum - x};
-                const auto tile = grid.GetTile(pos);
-                if (tile == core::TileType::Wall && HidesCorridorTile(dungeon, pos)) {
-                    // Mur de premier plan devant un couloir : coupé pour laisser voir le chemin
-                    DrawWall(GridToScreen(pos, origin), lowWallHeight);
-                } else if (tile) {
-                    DrawTile(pos, *tile);
+                const auto center = GridToScreen(pos, origin);
+                switch (grid.GetTile(pos).value_or(core::TileType::Empty)) {
+                    case core::TileType::Floor:
+                        (IsCorridorTile(dungeon, pos) ? sprites->asphalt : sprites->pavement).DrawOnTile(center);
+                        break;
+                    case core::TileType::Stairs:
+                        sprites->metro.DrawOnTile(center);
+                        break;
+                    case core::TileType::Wall:
+                        // Devant un couloir : trottoir bas pour laisser voir la rue
+                        (HidesCorridorTile(dungeon, pos) ? sprites->sidewalk : sprites->BuildingAt(pos))
+                            .DrawOnTile(center);
+                        break;
+                    case core::TileType::Empty:
+                        // Hors du donjon : rien à dessiner
+                        break;
                 }
             }
-        }
-    }
-
-    // Choisit le dessin selon le type de la case
-    void Renderer::DrawTile(const core::GridPos pos, const core::TileType type) const {
-        const auto center = GridToScreen(pos, origin);
-        switch (type) {
-            case core::TileType::Floor:
-                DrawFloor(center);
-                break;
-            case core::TileType::Wall:
-                DrawWall(center, wallHeight);
-                break;
-            case core::TileType::Stairs:
-                DrawStairs(center);
-                break;
-            case core::TileType::Empty:
-                // Hors du donjon : rien à dessiner
-                break;
         }
     }
 

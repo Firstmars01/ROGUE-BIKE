@@ -69,6 +69,15 @@ add_executable(${PROJECT_NAME} ${SRC_DIR}/main.cpp)
 compile_options(${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME} rogueCore rogueUi raylib)
 
+# Copie des ressources (sprites) à côté de l'exécutable à chaque build :
+# le jeu les charge depuis <dossier de l'exécutable>/assets
+add_custom_target(copyAssets ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_CURRENT_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets
+        COMMENT "Copie des ressources du jeu"
+)
+add_dependencies(${PROJECT_NAME} copyAssets)
+
 # --- Tests unitaires : logique métier + fonctions pures de rogueUi (ui.isoMath, sans appel raylib) ---
 file(GLOB TEST_FILES CONFIGURE_DEPENDS "${TESTS_DIR}/*.cpp")
 add_executable(tests ${TEST_FILES})

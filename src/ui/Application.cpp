@@ -1,4 +1,4 @@
-// Module ui.application (implémentation) : fenêtre raylib, boucle de jeu et entrées clavier.
+// Module ui.application (implémentation) : boucle de jeu et entrées clavier.
 // Interface : Application.ixx
 module;
 // raylib est incluse uniquement ici (fragment de module global)
@@ -20,26 +20,16 @@ namespace ui {
         constexpr int helpMargin{20};
     }
 
-    // Ouvre la fenêtre puis prépare le premier étage
+    // Fenêtre d'abord (membre déclaré en premier), puis donjon et renderer
     Application::Application()
-        : seed{core::dungeonSeed},
+        : window{core::windowWidth, core::windowHeight, core::windowTitle, core::targetFps},
+          seed{core::dungeonSeed},
           dungeon{CreateDungeon(core::dungeonSeed)},
-          renderer{core::mapWidth, core::mapHeight, core::windowWidth, core::windowHeight} {
-        InitWindow(core::windowWidth, core::windowHeight, core::windowTitle.data());
-        if (!IsWindowReady()) {
-            throw std::runtime_error{"Impossible de creer la fenetre"};
-        }
-        SetTargetFPS(core::targetFps);
-    }
-
-    // Ferme la fenêtre ouverte par le constructeur
-    Application::~Application() {
-        CloseWindow();
-    }
+          renderer{core::mapWidth, core::mapHeight, core::windowWidth, core::windowHeight, SpritesDirectory()} {}
 
     // Boucle principale : entrées, puis dessin, à chaque image
     void Application::Run() {
-        while (!WindowShouldClose()) {
+        while (!window.ShouldClose()) {
             HandleInput();
             BeginDrawing();
             Draw();
@@ -67,6 +57,11 @@ namespace ui {
     core::Dungeon Application::CreateDungeon(const std::uint32_t seed) {
         auto generator = core::DungeonGenerator{seed};
         return generator.Generate(core::mapWidth, core::mapHeight);
+    }
+
+    // Chemin fixe relatif à l'exécutable (aucune donnée utilisateur dans le chemin)
+    std::filesystem::path Application::SpritesDirectory() {
+        return std::filesystem::path{GetApplicationDirectory()} / "assets" / "sprites";
     }
 
 }

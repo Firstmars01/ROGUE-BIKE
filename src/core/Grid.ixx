@@ -58,8 +58,8 @@ export namespace core {
         // Indique si une entité peut se tenir en pos (sol ou escalier, dans les bornes)
         bool IsWalkable(const GridPos pos) const;
 
-        // Renvoie une vue en lecture seule sur toutes les tuiles (ordre ligne par ligne)
-        std::span<const TileType> GetTiles() const noexcept;
+        // Renvoie toutes les tuiles en lecture seule (référence constante, ordre ligne par ligne)
+        const std::vector<TileType>& GetTiles() const noexcept;
 
     private:
         // Vérifie qu'une dimension est strictement positive et la renvoie.

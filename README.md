@@ -21,6 +21,9 @@ Le joueur explore des étages de donjon générés procéduralement, combat des 
 │   ├── compile_options.cmake
 │   ├── raylib.cmake        # Téléchargement de raylib
 │   └── catch2.cmake        # Téléchargement de Catch2
+├── assets/sprites/         # Sprites pixel art isométriques (copiés à côté de l'exécutable au build)
+├── tools/
+│   └── GenerateSprites.py  # Script Python (Pillow) qui régénère les sprites
 ├── src/
 │   ├── core/               # Logique métier, SANS dépendance graphique
 │   │   ├── Config.ixx      # Module core.config : constantes du jeu
@@ -29,8 +32,9 @@ Le joueur explore des étages de donjon générés procéduralement, combat des 
 │   │   └── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, couloirs en L, escalier
 │   ├── ui/                 # Affichage (bibliothèque rogueUi)
 │   │   ├── IsoMath.ixx     # ui.isoMath : projection isométrique constexpr (tuiles 32x16)
-│   │   ├── Renderer.ixx / Renderer.cpp       # ui.renderer : dessin raylib (sol, murs en relief, escalier)
-│   │   └── Application.ixx / Application.cpp # ui.application : fenêtre RAII, boucle, clavier
+│   │   ├── Window.ixx / Window.cpp           # ui.window : fenêtre raylib en RAII
+│   │   ├── Renderer.ixx / Renderer.cpp       # ui.renderer : sprites pixel art (RAII), ordre du peintre
+│   │   └── Application.ixx / Application.cpp # ui.application : boucle de jeu, clavier
 │   └── main.cpp            # Point d'entrée : crée l'application et la lance
 └── tests/                  # Tests unitaires Catch2 (logique métier uniquement)
     ├── ConfigTests.cpp
@@ -50,6 +54,14 @@ Prévu : les modules `core.entities`, `core.game`, `core.pathfinding`.
    ```
 3. Ouvrir le dossier dans CLion (toolchain LLVM). Le premier chargement de CMake télécharge raylib et Catch2.
 
+### Sprites (optionnel)
+
+Les PNG de `assets/sprites/` sont versionnés. Pour les modifier puis les régénérer :
+```
+pip install pillow
+python tools/GenerateSprites.py
+```
+
 ## Lancement
 
 - Dans CLion : configuration **RogueBike** pour le jeu, **tests** pour les tests unitaires.
@@ -66,7 +78,8 @@ Prévu : les modules `core.entities`, `core.game`, `core.pathfinding`.
 - Lancer `RogueBike` : le donjon s'affiche en vue isométrique dans une fenêtre 1280x720.
 - `R` : génère le donjon suivant (graine + 1, affichée en haut à gauche).
 - `Échap` ou la croix : quitter.
-- Les murs font toujours une seule case d'épaisseur ; les murs placés devant un couloir sont dessinés bas pour le laisser visible.
+- Thème urbain : places pavées (salles), rues en asphalte (couloirs), immeubles (murs, 3 variantes), trottoirs (murs placés devant une rue, abaissés pour la laisser visible), bouche de métro (sortie de l'étage).
+- Les murs font toujours une seule case d'épaisseur.
 - Le donjon de démo est toujours le même (carte 40x30, graine fixe `dungeonSeed` dans `core.config`).
 - Lancer `tests` : Catch2 affiche le résultat des tests (`All tests passed`).
 
@@ -88,4 +101,5 @@ Prévu : les modules `core.entities`, `core.game`, `core.pathfinding`.
 - Dimensions invalides (grille, carte, salle) refusées par une exception dédiée `core::InvalidDimensionException`.
 - Programmation par contrat : `assert` sur les préconditions internes (actif en Debug).
 - Dépendances téléchargées depuis leurs dépôts officiels avec une version figée (`GIT_TAG`).
-- Le jeu ne lit aucune donnée externe hormis ses ressources graphiques et ne fait aucun accès réseau.
+- Le jeu ne lit aucune donnée externe hormis ses sprites, chargés depuis un chemin fixe relatif à l'exécutable (aucune donnée utilisateur dans le chemin), et ne fait aucun accès réseau.
+- Un sprite manquant provoque une erreur claire (nom du fichier uniquement, sans chemin complet) ; textures et fenêtre sont libérées en RAII dans le bon ordre.
