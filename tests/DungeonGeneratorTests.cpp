@@ -1,4 +1,4 @@
-// Tests unitaires du module core.dungeonGenerator : dimensions, salles, départ, escalier,
+// Tests unitaires du module core.dungeonGenerator : méthodes de Room, dimensions, salles, départ, escalier,
 // accessibilité et reproductibilité, vérifiés sur plusieurs graines.
 #include <catch2/catch_all.hpp>
 #include <array>
@@ -50,6 +50,37 @@ static int CountTiles(const Grid& grid, const TileType type) {
         }
     }
     return count;
+}
+
+TEST_CASE("Room::Center renvoie la case centrale", "[room]") {
+    const auto room = Room{2, 3, 6, 4};
+    REQUIRE(room.Center() == GridPos{5, 5});
+}
+
+TEST_CASE("Room::Contains detecte les cases de la salle", "[room]") {
+    const auto room = Room{2, 3, 4, 4};
+
+    // Coins intérieurs
+    REQUIRE(room.Contains(GridPos{2, 3}));
+    REQUIRE(room.Contains(GridPos{5, 6}));
+    // Juste à l'extérieur
+    REQUIRE_FALSE(room.Contains(GridPos{1, 3}));
+    REQUIRE_FALSE(room.Contains(GridPos{6, 3}));
+    REQUIRE_FALSE(room.Contains(GridPos{2, 7}));
+}
+
+TEST_CASE("Room::Intersects tient compte de l'ecart minimal", "[room]") {
+    const auto room = Room{0, 0, 4, 4};
+
+    // Chevauchement direct
+    REQUIRE(room.Intersects(Room{2, 2, 4, 4}, 0));
+    // Salles collées : séparées sans écart, trop proches avec un écart de 1
+    REQUIRE_FALSE(room.Intersects(Room{4, 0, 4, 4}, 0));
+    REQUIRE(room.Intersects(Room{4, 0, 4, 4}, 1));
+    // Une case libre entre les deux : acceptée avec un écart de 1
+    REQUIRE_FALSE(room.Intersects(Room{5, 0, 4, 4}, 1));
+    // Le test est symétrique
+    REQUIRE(Room{4, 0, 4, 4}.Intersects(room, 1));
 }
 
 TEST_CASE("Le donjon genere a les dimensions demandees", "[dungeon]") {
