@@ -1,6 +1,6 @@
 # Rogue Bike
 
-Jeu de rôle tactique au tour par tour en vue isométrique (pixel art 2.5D), réalisé en C++23 moderne en 7 jours (TP noté C++ Moderne, esimed).
+Jeu de rôle tactique au tour par tour en vue isométrique (pixel art 2.5D), réalisé en C++23 moderne.
 Le joueur explore des étages de donjon générés procéduralement, combat des ennemis et descend le plus profondément possible.
 
 ## Technologies
@@ -24,14 +24,16 @@ Le joueur explore des étages de donjon générés procéduralement, combat des 
 ├── src/
 │   ├── core/               # Logique métier, SANS dépendance graphique
 │   │   ├── Config.ixx      # Module core.config : constantes du jeu
-│   │   └── Grid.ixx        # Module core.grid : GridPos, TileType, Grid (accès vérifiés)
+│   │   ├── Grid.ixx / Grid.cpp                         # core.grid : GridPos, TileType, Grid (accès vérifiés)
+│   │   └── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, couloirs en L, escalier
 │   └── main.cpp            # Point d'entrée : fenêtre et boucle raylib
 └── tests/                  # Tests unitaires Catch2 (logique métier uniquement)
     ├── ConfigTests.cpp
-    └── GridTests.cpp
+    ├── GridTests.cpp
+    └── DungeonGeneratorTests.cpp
 ```
 
-Prévu : `src/ui/` (rendu isométrique raylib), puis les modules `core.dungeonGenerator`, `core.entities`, `core.game`, `core.pathfinding`.
+Prévu : `src/ui/` (rendu isométrique raylib), puis les modules `core.entities`, `core.game`, `core.pathfinding`.
 
 ## Installation
 
@@ -56,12 +58,14 @@ Prévu : `src/ui/` (rendu isométrique raylib), puis les modules `core.dungeonGe
 ## Exemples d'utilisation
 
 - Lancer `RogueBike` : une fenêtre 1280x720 s'ouvre. `Échap` ou la croix pour quitter.
+- Le donjon de démo est toujours le même (carte 40x30, graine fixe `dungeonSeed` dans `core.config`).
 - Lancer `tests` : Catch2 affiche le résultat des tests (`All tests passed`).
 
 ## Conventions de code
 
 - Classes et fonctions en `CamelCase` (1re majuscule)
 - Modules, espaces de noms, données, paramètres et variables en `camelCase`, sans préfixe
+- Chaque module est séparé en interface `.ixx` (déclarations commentées) et implémentation `.cpp` (`module nom;`) ; seules les constantes `constexpr` restent dans l'interface
 - Initialisation `{}`, `auto`, `const` dès que possible, aucun `new`/`delete`
 
 ## Sécurité

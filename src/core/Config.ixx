@@ -21,4 +21,13 @@ export namespace core {
     // Titre de la fenêtre (littéral : garanti terminé par '\0', donc compatible raylib via data())
     inline constexpr std::string_view windowTitle{"Rogue Bike"};
 
+    // Largeur de la carte d'un étage en cases
+    inline constexpr int mapWidth{40};
+
+    // Hauteur de la carte d'un étage en cases
+    inline constexpr int mapHeight{30};
+
+    // Graine fixe du générateur de donjon (démo reproductible)
+    inline constexpr std::uint32_t dungeonSeed{42};
+
 }
