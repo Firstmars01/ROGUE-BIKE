@@ -10,10 +10,10 @@ export module core.config;
 export namespace core {
 
     // Largeur de la fenêtre en pixels
-    inline constexpr int windowWidth{1280};
+    inline constexpr int windowWidth{1920};
 
     // Hauteur de la fenêtre en pixels
-    inline constexpr int windowHeight{720};
+    inline constexpr int windowHeight{1080};
 
     // Nombre d'images par seconde visé
     inline constexpr int targetFps{60};
@@ -22,10 +22,10 @@ export namespace core {
     inline constexpr std::string_view windowTitle{"Rogue Bike"};
 
     // Largeur de la carte d'un étage en cases
-    inline constexpr int mapWidth{40};
+    inline constexpr int mapWidth{60};
 
     // Hauteur de la carte d'un étage en cases
-    inline constexpr int mapHeight{30};
+    inline constexpr int mapHeight{45};
 
     // Graine fixe du générateur de donjon (démo reproductible)
     inline constexpr std::uint32_t dungeonSeed{42};

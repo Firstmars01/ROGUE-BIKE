@@ -61,15 +61,15 @@ export namespace core {
     class DungeonGenerator {
     public:
         // Nombre de salles visé (tiré au hasard entre ces deux bornes)
-        static constexpr int minRoomCount{4};
-        static constexpr int maxRoomCount{5};
+        static constexpr int minRoomCount{7};
+        static constexpr int maxRoomCount{9};
         // Taille d'une salle en cases (largeur et hauteur)
-        static constexpr int minRoomSize{4};
-        static constexpr int maxRoomSize{8};
+        static constexpr int minRoomSize{5};
+        static constexpr int maxRoomSize{10};
         // Nombre de cases libres minimal entre deux salles
         static constexpr int roomGap{1};
         // Nombre maximal d'essais de placement (évite une boucle infinie si la carte est pleine)
-        static constexpr int maxPlacementAttempts{200};
+        static constexpr int maxPlacementAttempts{500};
         // Dimension minimale de la carte pour contenir une salle entourée de murs
         static constexpr int minMapSize{maxRoomSize + 2};
         // Nombre maximal de passes d'amincissement des murs (garde-fou contre une boucle infinie)

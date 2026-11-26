@@ -1,5 +1,6 @@
 // Module ui.renderer (interface) : dessin isométrique de l'étage avec des sprites pixel art
-// (rues en asphalte, places pavées, immeubles, trottoirs, bouche de métro).
+// (rues en asphalte, places pavées, immeubles, trottoirs, plaque d'égout au départ,
+// bouche de métro à l'arrivée).
 // L'interface ne dépend pas de raylib : les textures sont cachées dans Renderer.cpp (idiome pimpl).
 // Implémentation : Renderer.cpp
 module;
@@ -35,7 +36,8 @@ export namespace ui {
         ScreenPos GetOrigin() const noexcept;
 
         // Dessine tout l'étage dans l'ordre du peintre (x + y croissant).
-        // Salles en pavés, couloirs en asphalte, murs en immeubles ; un mur qui cacherait un couloir
+        // Salles en pavés, couloirs en asphalte, murs en immeubles, plaque d'égout sur le départ,
+        // bouche de métro sur l'escalier ; un mur qui cacherait un couloir
         // est remplacé par un trottoir. À appeler entre BeginDrawing() et EndDrawing().
         void DrawDungeon(const core::Dungeon& dungeon) const;
 

@@ -28,10 +28,10 @@ TEST_CASE("GridToScreen applique la projection isometrique", "[isoMath]") {
 }
 
 TEST_CASE("ScreenToGrid est l'inverse de GridToScreen", "[isoMath]") {
-    constexpr auto origin = ScreenPos{640.0f, 80.0f};
+    constexpr auto origin = ScreenPos{960.0f, 120.0f};
 
-    for (auto y = 0; y < 30; ++y) {
-        for (auto x = 0; x < 40; ++x) {
+    for (auto y = 0; y < 45; ++y) {
+        for (auto x = 0; x < 60; ++x) {
             const auto pos = GridPos{x, y};
             REQUIRE(ScreenToGrid(GridToScreen(pos, origin), origin) == pos);
         }
@@ -53,9 +53,9 @@ TEST_CASE("ScreenToGrid trouve la case pour un point proche du bord du losange",
 }
 
 TEST_CASE("CenteredOrigin centre la carte dans la fenetre", "[isoMath]") {
-    constexpr auto mapWidth = 40;
-    constexpr auto mapHeight = 30;
-    constexpr auto origin = CenteredOrigin(mapWidth, mapHeight, 1280, 720);
+    constexpr auto mapWidth = 60;
+    constexpr auto mapHeight = 45;
+    constexpr auto origin = CenteredOrigin(mapWidth, mapHeight, 1920, 1080);
 
     // Bords extrêmes de la carte à l'écran (sommets des losanges des coins)
     const auto left = GridToScreen(GridPos{0, mapHeight - 1}, origin).x - halfTileWidth;
@@ -64,11 +64,11 @@ TEST_CASE("CenteredOrigin centre la carte dans la fenetre", "[isoMath]") {
     const auto bottom = GridToScreen(GridPos{mapWidth - 1, mapHeight - 1}, origin).y + halfTileHeight;
 
     // Le centre de la carte coïncide avec le centre de la fenêtre
-    REQUIRE((left + right) / 2.0f == Catch::Approx(640.0f));
-    REQUIRE((top + bottom) / 2.0f == Catch::Approx(360.0f));
-    // La carte 40x30 tient entièrement dans la fenêtre 1280x720
+    REQUIRE((left + right) / 2.0f == Catch::Approx(960.0f));
+    REQUIRE((top + bottom) / 2.0f == Catch::Approx(540.0f));
+    // La carte 60x45 tient entièrement dans la fenêtre 1920x1080
     REQUIRE(left >= 0.0f);
-    REQUIRE(right <= 1280.0f);
+    REQUIRE(right <= 1920.0f);
     REQUIRE(top >= 0.0f);
-    REQUIRE(bottom <= 720.0f);
+    REQUIRE(bottom <= 1080.0f);
 }

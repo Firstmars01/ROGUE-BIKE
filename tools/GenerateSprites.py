@@ -1,6 +1,6 @@
 # Générateur des sprites pixel art isométriques de Rogue Bike (tuiles 32x16).
 # Produit des PNG transparents dans assets/sprites/ : sol (asphalte, pavés), trottoir,
-# bouche de métro et 3 variantes d'immeubles. Usage : python tools/GenerateSprites.py
+# plaque d'égout (départ), bouche de métro (arrivée) et 3 variantes d'immeubles. Usage : python tools/GenerateSprites.py
 # Dépendance : Pillow (pip install pillow). Les PNG générés sont versionnés : ce script
 # ne sert qu'à les régénérer ou les modifier.
 import random
@@ -144,6 +144,30 @@ def make_building(name, wall_color, pattern, seed):
     image.save(OUTPUT_DIR / name)
 
 
+def make_manhole():
+    """Plaque d'égout (case de départ) : dalle pavée avec une plaque ronde en fonte quadrillée."""
+    rng = random.Random(7)
+    image = Image.new("RGBA", (TILE_WIDTH, TILE_HEIGHT), (0, 0, 0, 0))
+    pavement = pavement_texture(rng, HALF_H)
+    radius_x, radius_y = 8.0, 4.0   # cercle vu en isométrique : ellipse 2:1
+
+    def tile(x, y):
+        dx = (x + 0.5 - HALF_W) / radius_x
+        dy = (y + 0.5 - HALF_H) / radius_y
+        distance = dx * dx + dy * dy
+        if distance > 1.0:
+            return pavement(x, y)
+        if distance > 0.62:
+            return (46, 46, 50)            # cerclage
+        a, b = iso_coords(x, y, HALF_H)
+        if (a * 8) % 1 < 0.3 or (b * 8) % 1 < 0.3:
+            return (58, 58, 63)            # rainures du quadrillage
+        return (88, 88, 94)                # fonte
+
+    fill_floor(image, HALF_H, tile)
+    image.save(OUTPUT_DIR / "manhole.png")
+
+
 M_LETTER = ["1...1", "11.11", "1.1.1", "1...1", "1...1"]
 
 
@@ -184,6 +208,7 @@ def main():
     make_floor("asphalt.png", asphalt_texture(random.Random(1)))
     make_floor("pavement.png", pavement_texture(random.Random(2), HALF_H))
     make_sidewalk()
+    make_manhole()
     make_metro()
     make_building("building_brick.png", (150, 72, 56), "brick", 11)
     make_building("building_concrete.png", (142, 142, 138), "concrete", 12)

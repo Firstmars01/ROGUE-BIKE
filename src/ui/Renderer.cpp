@@ -50,6 +50,7 @@ namespace ui {
         TileSprite asphalt;
         TileSprite pavement;
         TileSprite sidewalk;
+        TileSprite manhole;
         TileSprite metro;
         TileSprite brickBuilding;
         TileSprite concreteBuilding;
@@ -60,6 +61,7 @@ namespace ui {
             : asphalt{directory / "asphalt.png"},
               pavement{directory / "pavement.png"},
               sidewalk{directory / "sidewalk.png"},
+              manhole{directory / "manhole.png"},
               metro{directory / "metro.png"},
               brickBuilding{directory / "building_brick.png"},
               concreteBuilding{directory / "building_concrete.png"},
@@ -137,9 +139,15 @@ namespace ui {
                 const auto center = GridToScreen(pos, origin);
                 switch (grid.GetTile(pos).value_or(core::TileType::Empty)) {
                     case core::TileType::Floor:
-                        (IsCorridorTile(dungeon, pos) ? sprites->asphalt : sprites->pavement).DrawOnTile(center);
+                        if (pos == dungeon.playerStart) {
+                            // Départ : plaque d'égout
+                            sprites->manhole.DrawOnTile(center);
+                        } else {
+                            (IsCorridorTile(dungeon, pos) ? sprites->asphalt : sprites->pavement).DrawOnTile(center);
+                        }
                         break;
                     case core::TileType::Stairs:
+                        // Arrivée : bouche de métro
                         sprites->metro.DrawOnTile(center);
                         break;
                     case core::TileType::Wall:

@@ -99,10 +99,10 @@ TEST_CASE("Room::Intersects tient compte de l'ecart minimal", "[room]") {
 
 TEST_CASE("Le donjon genere a les dimensions demandees", "[dungeon]") {
     auto generator = DungeonGenerator{42};
-    const auto dungeon = generator.Generate(40, 30);
+    const auto dungeon = generator.Generate(60, 45);
 
-    REQUIRE(dungeon.grid.GetWidth() == 40);
-    REQUIRE(dungeon.grid.GetHeight() == 30);
+    REQUIRE(dungeon.grid.GetWidth() == 60);
+    REQUIRE(dungeon.grid.GetHeight() == 45);
 }
 
 TEST_CASE("Une carte trop petite est refusee", "[dungeon]") {
@@ -113,10 +113,10 @@ TEST_CASE("Une carte trop petite est refusee", "[dungeon]") {
 TEST_CASE("Les salles respectent les regles de placement", "[dungeon]") {
     const auto seed = GENERATE(range(0u, 50u));
     auto generator = DungeonGenerator{seed};
-    const auto dungeon = generator.Generate(40, 30);
+    const auto dungeon = generator.Generate(60, 45);
     const auto& rooms = dungeon.rooms;
 
-    REQUIRE(rooms.size() >= 1);
+    REQUIRE(rooms.size() >= static_cast<std::size_t>(DungeonGenerator::minRoomCount));
     REQUIRE(rooms.size() <= static_cast<std::size_t>(DungeonGenerator::maxRoomCount));
 
     for (auto i = std::size_t{0}; i < rooms.size(); ++i) {
@@ -127,8 +127,8 @@ TEST_CASE("Les salles respectent les regles de placement", "[dungeon]") {
         REQUIRE(rooms[i].GetHeight() <= DungeonGenerator::maxRoomSize);
         REQUIRE(rooms[i].GetX() >= 1);
         REQUIRE(rooms[i].GetY() >= 1);
-        REQUIRE(rooms[i].GetX() + rooms[i].GetWidth() <= 39);
-        REQUIRE(rooms[i].GetY() + rooms[i].GetHeight() <= 29);
+        REQUIRE(rooms[i].GetX() + rooms[i].GetWidth() <= 59);
+        REQUIRE(rooms[i].GetY() + rooms[i].GetHeight() <= 44);
 
         // Aucun chevauchement entre salles
         for (auto j = i + 1; j < rooms.size(); ++j) {
@@ -140,7 +140,7 @@ TEST_CASE("Les salles respectent les regles de placement", "[dungeon]") {
 TEST_CASE("Le depart est sur du sol et l'escalier est unique et accessible", "[dungeon]") {
     const auto seed = GENERATE(range(0u, 50u));
     auto generator = DungeonGenerator{seed};
-    const auto dungeon = generator.Generate(40, 30);
+    const auto dungeon = generator.Generate(60, 45);
 
     REQUIRE(dungeon.grid.GetTile(dungeon.playerStart) == TileType::Floor);
     REQUIRE(dungeon.grid.GetTile(dungeon.stairs) == TileType::Stairs);
@@ -152,7 +152,7 @@ TEST_CASE("Le depart est sur du sol et l'escalier est unique et accessible", "[d
 TEST_CASE("Toutes les salles sont reliees au depart", "[dungeon]") {
     const auto seed = GENERATE(range(0u, 50u));
     auto generator = DungeonGenerator{seed};
-    const auto dungeon = generator.Generate(40, 30);
+    const auto dungeon = generator.Generate(60, 45);
 
     for (const auto& room : dungeon.rooms) {
         REQUIRE(IsReachable(dungeon.grid, dungeon.playerStart, room.Center()));
@@ -162,7 +162,7 @@ TEST_CASE("Toutes les salles sont reliees au depart", "[dungeon]") {
 TEST_CASE("Les bords de la carte ne sont jamais praticables", "[dungeon]") {
     const auto seed = GENERATE(range(0u, 50u));
     auto generator = DungeonGenerator{seed};
-    const auto dungeon = generator.Generate(40, 30);
+    const auto dungeon = generator.Generate(60, 45);
     const auto& grid = dungeon.grid;
 
     for (auto x = 0; x < grid.GetWidth(); ++x) {
@@ -178,7 +178,7 @@ TEST_CASE("Les bords de la carte ne sont jamais praticables", "[dungeon]") {
 TEST_CASE("Les murs entre deux zones praticables font une seule case d'epaisseur", "[dungeon]") {
     const auto seed = GENERATE(range(0u, 50u));
     auto generator = DungeonGenerator{seed};
-    const auto dungeon = generator.Generate(40, 30);
+    const auto dungeon = generator.Generate(60, 45);
     const auto& grid = dungeon.grid;
 
     // Aucun motif sol / mur / mur / sol, ni horizontal ni vertical
@@ -201,8 +201,8 @@ TEST_CASE("Les murs entre deux zones praticables font une seule case d'epaisseur
 TEST_CASE("Une meme graine produit le meme donjon", "[dungeon]") {
     auto first = DungeonGenerator{1234};
     auto second = DungeonGenerator{1234};
-    const auto dungeonA = first.Generate(40, 30);
-    const auto dungeonB = second.Generate(40, 30);
+    const auto dungeonA = first.Generate(60, 45);
+    const auto dungeonB = second.Generate(60, 45);
 
     const auto tilesA = dungeonA.grid.GetTiles();
     const auto tilesB = dungeonB.grid.GetTiles();
