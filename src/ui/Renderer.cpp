@@ -87,6 +87,15 @@ namespace ui {
         constexpr float markerRadius{6.0f};
         constexpr float bossRadius{14.0f};
         constexpr float bossElevation{14.0f};
+
+        // Barres de vie au-dessus des entités
+        constexpr Color healthBackgroundColor{30, 20, 20, 220};
+        constexpr Color playerHealthColor{70, 200, 90, 255};
+        constexpr Color enemyHealthColor{220, 50, 50, 255};
+        constexpr float healthBarWidth{20.0f};
+        constexpr float bossHealthBarWidth{40.0f};
+        constexpr float healthBarHeight{3.0f};
+        constexpr float healthBarGap{4.0f};       // Espace entre le repère et la barre
         constexpr float markerElevation{8.0f};
 
         // Surcouches des cases praticables (semi-transparentes)
@@ -146,17 +155,6 @@ namespace ui {
             DrawLineV(diamond.right, diamond.top, color);
         }
 
-        // Dessine le boss : un gros point centré sur son carré de cases (topLeft = case en haut à gauche)
-        void DrawBoss(const core::GridPos topLeft, const ScreenPos origin) {
-            // Centre du carré = milieu entre les centres de la première et de la dernière case
-            const auto last = core::Boss::size - 1;
-            const auto first = GridToScreen(topLeft, origin);
-            const auto opposite = GridToScreen(core::GridPos{topLeft.x + last, topLeft.y + last}, origin);
-            const auto position = Vector2{(first.x + opposite.x) / 2.0f, (first.y + opposite.y) / 2.0f - bossElevation};
-            DrawCircleV(position, bossRadius, bossColor);
-            DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), bossRadius, bossOutlineColor);
-        }
-
         // Dessine les surcouches d'une case praticable : quadrillage, zone de déplacement, survol
         void DrawTileOverlays(const ScreenPos center, const bool reachable, const bool hovered) {
             OutlineTile(center, gridLineColor);
@@ -167,11 +165,36 @@ namespace ui {
             }
         }
 
-        // Dessine un repère d'entité (cercle plein et contour) sur la case de centre center
-        void DrawMarker(const ScreenPos center, const Color fill, const Color outline) {
+        // Dessine une barre de vie centrée en x, posée au-dessus de bottomY, remplie selon les PV de entity
+        void DrawHealthBar(const float x, const float bottomY, const float width, const core::Entity& entity,
+                           const Color fill) {
+            const auto ratio = static_cast<float>(entity.GetHealth()) / static_cast<float>(entity.GetMaxHealth());
+            const auto left = x - width / 2.0f;
+            const auto top = bottomY - healthBarHeight;
+            DrawRectangleRec(Rectangle{left - 1.0f, top - 1.0f, width + 2.0f, healthBarHeight + 2.0f}, healthBackgroundColor);
+            DrawRectangleRec(Rectangle{left, top, width * ratio, healthBarHeight}, fill);
+        }
+
+        // Dessine un repère d'entité (cercle plein et contour) et sa barre de vie sur la case de centre center
+        void DrawMarker(const ScreenPos center, const core::Entity& entity, const Color fill, const Color outline,
+                        const Color healthFill) {
             const auto position = Vector2{center.x, center.y - markerElevation};
             DrawCircleV(position, markerRadius, fill);
             DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), markerRadius, outline);
+            DrawHealthBar(position.x, position.y - markerRadius - healthBarGap, healthBarWidth, entity, healthFill);
+        }
+
+        // Dessine le boss (gros point centré sur son carré de cases) et sa barre de vie
+        void DrawBoss(const core::Boss& boss, const ScreenPos origin) {
+            // Centre du carré = milieu entre les centres de la première et de la dernière case
+            const auto last = core::Boss::size - 1;
+            const auto topLeft = boss.GetPosition();
+            const auto first = GridToScreen(topLeft, origin);
+            const auto opposite = GridToScreen(core::GridPos{topLeft.x + last, topLeft.y + last}, origin);
+            const auto position = Vector2{(first.x + opposite.x) / 2.0f, (first.y + opposite.y) / 2.0f - bossElevation};
+            DrawCircleV(position, bossRadius, bossColor);
+            DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), bossRadius, bossOutlineColor);
+            DrawHealthBar(position.x, position.y - bossRadius - healthBarGap, bossHealthBarWidth, boss, enemyHealthColor);
         }
 
         // Indique si pos est un couloir (praticable et hors de toute salle)
@@ -274,18 +297,18 @@ namespace ui {
                 }
                 // Entités dessinées juste après leur case : les immeubles devant elles les recouvrent
                 if (pos == scene.player.GetPosition()) {
-                    DrawMarker(center, playerColor, playerOutlineColor);
+                    DrawMarker(center, scene.player, playerColor, playerOutlineColor, playerHealthColor);
                 }
-                const auto hasEnemy = std::ranges::any_of(scene.enemies, [pos](const auto& enemy) {
-                    return enemy->GetPosition() == pos;
+                const auto enemy = std::ranges::find_if(scene.enemies, [pos](const auto& candidate) {
+                    return candidate->GetPosition() == pos;
                 });
-                if (hasEnemy) {
-                    DrawMarker(center, enemyColor, enemyOutlineColor);
+                if (enemy != scene.enemies.end()) {
+                    DrawMarker(center, **enemy, enemyColor, enemyOutlineColor, enemyHealthColor);
                 }
                 // Boss dessiné après la dernière de ses cases (la plus proche de la caméra)
                 const auto bossLast = core::Boss::size - 1;
                 if (pos == core::GridPos{scene.boss.GetPosition().x + bossLast, scene.boss.GetPosition().y + bossLast}) {
-                    DrawBoss(scene.boss.GetPosition(), origin);
+                    DrawBoss(scene.boss, origin);
                 }
             }
         }

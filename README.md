@@ -81,6 +81,7 @@ python tools/GenerateSprites.py
 
 - Lancer `RogueBike` : le jeu s'ouvre en plein écran sans bordure. Il est dessiné sur un canevas fixe de 1920x1080, affiché mis à l'échelle et centré si l'écran a une autre taille (la souris est convertie de la même façon). Caméra fixe montrant toute la carte.
 - Le joueur (repère provisoire : cercle bleu) apparaît sur la plaque d'égout.
+- Points de vie : joueur 100, ennemis 75, boss 1000. Une barre de vie est affichée au-dessus de chaque entité (verte pour le joueur, rouge pour les ennemis et le boss).
 - La zone de déplacement du joueur s'affiche en bleu : toutes les cases atteignables en marchant (murs contournés) en au plus `speed` pas, la vitesse de la moto (4 au départ).
 - Clic gauche sur une case bleue : le joueur s'y téléporte. Un clic hors de la zone ne fait rien.
 - Boss (repère provisoire : gros point rouge foncé) : un « Chef de gang » qui occupe un carré de 2x2 cases, collé à la bouche de métro du côté d'où arrive le couloir. Il est seul dans sa salle, qui mesure au moins 8x8.

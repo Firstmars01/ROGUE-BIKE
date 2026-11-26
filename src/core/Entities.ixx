@@ -23,6 +23,9 @@ export namespace core {
         // Renvoie les points de vie actuels
         int GetHealth() const noexcept;
 
+        // Renvoie les points de vie maximum (ceux du départ)
+        int GetMaxHealth() const noexcept;
+
         // Renvoie la valeur d'attaque
         int GetAttack() const noexcept;
 
@@ -48,13 +51,14 @@ export namespace core {
     private:
         GridPos position{};
         int health{};
+        int maxHealth{};
         int attack{};
     };
 
     // Joueur : le motard
     class Player final : public Entity {
     public:
-        static constexpr int startHealth{30};
+        static constexpr int startHealth{100};
         static constexpr int startAttack{5};
         static constexpr int startSpeed{4};    // Vitesse de la moto = portée de déplacement (cases)
 
@@ -76,10 +80,10 @@ export namespace core {
         int speed{startSpeed};
     };
 
-    // Ennemi : un voyou du quartier (statistiques utilisées à partir des combats)
+    // Ennemi : un voyou du quartier
     class Enemy final : public Entity {
     public:
-        static constexpr int startHealth{10};
+        static constexpr int startHealth{75};
         static constexpr int startAttack{3};
 
         // Crée un ennemi sur la case position
@@ -94,7 +98,7 @@ export namespace core {
     class Boss final : public Entity {
     public:
         static constexpr int size{2};
-        static constexpr int startHealth{50};
+        static constexpr int startHealth{1000};
         static constexpr int startAttack{8};
 
         // Crée le boss avec topLeft comme case en haut à gauche

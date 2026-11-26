@@ -41,7 +41,7 @@ export namespace ui {
         // immeubles (transparents s'ils cachent une entité ou la case visée) ou trottoirs (murs),
         // plaque d'égout (départ), métro (sortie), quadrillage,
         // zone de déplacement en bleu, case survolée éclaircie, joueur (point bleu), ennemis (points rouges),
-        // boss (gros point rouge foncé centré sur ses 2x2 cases).
+        // boss (gros point rouge foncé centré sur ses 2x2 cases), barre de vie au-dessus de chaque entité.
         // À appeler entre Window::BeginFrame() et Window::EndFrame().
         void DrawScene(const SceneView& scene) const;
 

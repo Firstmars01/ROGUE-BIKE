@@ -13,9 +13,23 @@ TEST_CASE("Le joueur demarre sur sa case avec ses statistiques de depart", "[ent
 
     REQUIRE(player.GetPosition() == GridPos{4, 7});
     REQUIRE(player.GetHealth() == Player::startHealth);
+    REQUIRE(player.GetMaxHealth() == Player::startHealth);
     REQUIRE(player.GetAttack() == Player::startAttack);
     REQUIRE(player.IsAlive());
     REQUIRE(player.GetName() == "Motard");
+}
+
+TEST_CASE("Points de vie de depart : joueur 100, ennemi 75, boss 1000", "[entities]") {
+    REQUIRE(Player{GridPos{0, 0}}.GetHealth() == 100);
+    REQUIRE(Enemy{GridPos{0, 0}}.GetHealth() == 75);
+    REQUIRE(Boss{GridPos{0, 0}}.GetHealth() == 1000);
+}
+
+TEST_CASE("Les PV maximum ne changent pas avec les degats", "[entities]") {
+    auto enemy = Enemy{GridPos{0, 0}};
+    enemy.TakeDamage(30);
+    REQUIRE(enemy.GetHealth() == 45);
+    REQUIRE(enemy.GetMaxHealth() == 75);
 }
 
 TEST_CASE("SetPosition deplace l'entite", "[entities]") {

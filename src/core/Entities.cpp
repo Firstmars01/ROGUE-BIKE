@@ -10,7 +10,7 @@ import core.pathfinding;
 namespace core {
 
     Entity::Entity(const GridPos position, const int health, const int attack)
-        : position{position}, health{health}, attack{attack} {
+        : position{position}, health{health}, maxHealth{health}, attack{attack} {
         if (health <= 0 || attack <= 0) {
             throw GameException{"Les PV et l'attaque d'une entite doivent etre strictement positifs"};
         }
@@ -26,6 +26,10 @@ namespace core {
 
     int Entity::GetHealth() const noexcept {
         return health;
+    }
+
+    int Entity::GetMaxHealth() const noexcept {
+        return maxHealth;
     }
 
     int Entity::GetAttack() const noexcept {
