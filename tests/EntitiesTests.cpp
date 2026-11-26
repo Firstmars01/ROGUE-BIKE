@@ -12,7 +12,6 @@ TEST_CASE("Le joueur demarre sur sa case avec ses statistiques de depart", "[ent
 
     REQUIRE(player.GetPosition() == GridPos{4, 7});
     REQUIRE(player.GetHealth() == Player::startHealth);
-    REQUIRE(player.GetMaxHealth() == Player::startHealth);
     REQUIRE(player.GetAttack() == Player::startAttack);
     REQUIRE(player.IsAlive());
     REQUIRE(player.GetName() == "Motard");
@@ -42,13 +41,6 @@ TEST_CASE("Des degats negatifs sont ignores", "[entities]") {
     player.TakeDamage(5);
     player.TakeDamage(-20);
     REQUIRE(player.GetHealth() == Player::startHealth - 5);
-}
-
-TEST_CASE("RestoreFullHealth rend tous les PV", "[entities]") {
-    auto player = Player{GridPos{0, 0}};
-    player.TakeDamage(25);
-    player.RestoreFullHealth();
-    REQUIRE(player.GetHealth() == Player::startHealth);
 }
 
 TEST_CASE("Le joueur s'utilise via un pointeur sur Entity (polymorphisme)", "[entities]") {

@@ -62,8 +62,8 @@ TEST_CASE("Room conserve sa position et ses dimensions", "[room]") {
 }
 
 TEST_CASE("Room refuse des dimensions invalides", "[room]") {
-    REQUIRE_THROWS_AS((Room{0, 0, 0, 4}), InvalidDimensionException);
-    REQUIRE_THROWS_AS((Room{0, 0, 4, -2}), InvalidDimensionException);
+    REQUIRE_THROWS_AS((Room{0, 0, 0, 4}), GameException);
+    REQUIRE_THROWS_AS((Room{0, 0, 4, -2}), GameException);
 }
 
 TEST_CASE("Room::Center renvoie la case centrale", "[room]") {
@@ -107,7 +107,7 @@ TEST_CASE("Le donjon genere a les dimensions demandees", "[dungeon]") {
 
 TEST_CASE("Une carte trop petite est refusee", "[dungeon]") {
     auto generator = DungeonGenerator{42};
-    REQUIRE_THROWS_AS(generator.Generate(5, 30), InvalidDimensionException);
+    REQUIRE_THROWS_AS(generator.Generate(5, 30), GameException);
 }
 
 TEST_CASE("Les salles respectent les regles de placement", "[dungeon]") {

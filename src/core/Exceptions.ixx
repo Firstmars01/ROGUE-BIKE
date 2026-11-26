@@ -1,32 +1,17 @@
-// Module core.exceptions (interface) : classes d'exception propres au jeu.
+// Module core.exceptions (interface) : exception du jeu.
 // Implémentation : Exceptions.cpp
 module;
-// Import rapide de la bibliothèque standard
 import std;
 
-// Nommage et exportation de ce module
 export module core.exceptions;
 
 export namespace core {
 
-    // Exception levée lorsqu'une dimension (grille, carte, salle) est invalide
-    class InvalidDimensionException : public std::exception {
+    // Exception levée quand une valeur est invalide (dimension, statistique, génération)
+    class GameException : public std::exception {
     public:
-        // Crée l'exception. message : description de l'erreur
-        explicit InvalidDimensionException(const std::string& message);
-
-        // Renvoie la description de l'erreur
-        const char* what() const noexcept override;
-
-    private:
-        std::string message;
-    };
-
-    // Exception levée lorsqu'une statistique d'entité (PV, attaque) est invalide
-    class InvalidStatException : public std::exception {
-    public:
-        // Crée l'exception. message : description de l'erreur
-        explicit InvalidStatException(const std::string& message);
+        // message : description de l'erreur
+        explicit GameException(const std::string& message);
 
         // Renvoie la description de l'erreur
         const char* what() const noexcept override;

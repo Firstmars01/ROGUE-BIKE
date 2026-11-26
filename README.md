@@ -28,12 +28,12 @@ Le joueur parcourt des quartiers générés procéduralement (places reliées pa
 ├── src/
 │   ├── core/               # Bibliothèque rogueCore : logique métier, SANS dépendance graphique
 │   │   ├── Config.ixx                                  # core.config : fenêtre, taille de carte, graine
-│   │   ├── Exceptions.ixx / Exceptions.cpp             # core.exceptions : InvalidDimensionException, InvalidStatException
+│   │   ├── Exceptions.ixx / Exceptions.cpp             # core.exceptions : GameException
 │   │   ├── Grid.ixx / Grid.cpp                         # core.grid : GridPos, TileType, Grid (accès vérifiés)
 │   │   ├── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, rues, départ, sortie
 │   │   └── Entities.ixx / Entities.cpp                 # core.entities : Entity (abstraite), Player
 │   ├── ui/                 # Bibliothèque rogueUi : affichage (seule partie qui utilise raylib)
-│   │   ├── IsoMath.ixx                       # ui.isoMath : projection isométrique constexpr (tuiles 32x16)
+│   │   ├── IsoMath.ixx                       # ui.isoMath : projection grille -> écran constexpr (tuiles 32x16)
 │   │   ├── Window.ixx / Window.cpp           # ui.window : fenêtre raylib en RAII
 │   │   ├── Renderer.ixx / Renderer.cpp       # ui.renderer : sprites pixel art (RAII), ordre du peintre
 │   │   └── Application.ixx / Application.cpp # ui.application : boucle de jeu, clavier
@@ -98,7 +98,8 @@ python tools/GenerateSprites.py
 
 - Classes et fonctions en `CamelCase` (1re majuscule)
 - Modules, espaces de noms, données, paramètres et variables en `camelCase`, sans préfixe
-- Chaque module est séparé en interface `.ixx` (déclarations commentées) et implémentation `.cpp` (`module nom;`) ; seules les constantes et fonctions `constexpr` restent dans l'interface
+- Chaque module est séparé en interface `.ixx` (déclarations commentées : rôle, paramètres, retour) et implémentation `.cpp` (`module nom;`, commentaires sur les étapes importantes uniquement) ; seules les constantes et fonctions `constexpr` restent dans l'interface
+- Pas de code mort : une fonction n'est ajoutée que lorsqu'elle sert
 - `struct` uniquement pour les données sans code (`GridPos`, `Dungeon`), `class` pour le reste
 - `const` sur les paramètres, y compris dans les déclarations des `.ixx`
 - Initialisation `{}`, `auto`, `const` dès que possible
@@ -112,8 +113,8 @@ python tools/GenerateSprites.py
 - Fenêtre raylib ouverte et fermée par `ui::Window` (RAII, non copiable), créée avant les textures et détruite après elles.
 - Les erreurs fatales sont attrapées dans `main` et affichées avec un message court, sans détail interne.
 - Accès à la grille avec vérification des bornes (`std::optional`) pour éviter les dépassements mémoire.
-- Dimensions invalides (grille, carte, salle) refusées par une exception dédiée `core::InvalidDimensionException`.
-- Statistiques d'entité invalides (PV ou attaque ≤ 0) refusées par `core::InvalidStatException` ; les PV ne deviennent jamais négatifs et des dégâts négatifs sont ignorés.
+- Valeurs invalides (dimensions de grille, de carte ou de salle, PV ou attaque ≤ 0, génération impossible) refusées par une exception dédiée `core::GameException`.
+- Les PV ne deviennent jamais négatifs et des dégâts négatifs sont ignorés.
 - Programmation par contrat : `assert` sur les préconditions internes (actif en Debug).
 - Génération bornée : nombre d'essais de placement et de passes d'amincissement limité (pas de boucle infinie).
 - Dépendances téléchargées depuis leurs dépôts officiels avec une version figée (`GIT_TAG`).

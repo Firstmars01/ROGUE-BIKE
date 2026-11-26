@@ -1,4 +1,4 @@
-// Tests unitaires du module core.grid : dimensions, accès sécurisé, remplissage, praticabilité.
+// Tests unitaires du module core.grid : dimensions, accès sécurisé, praticabilité.
 #include <catch2/catch_all.hpp>
 
 import core.grid;
@@ -28,8 +28,8 @@ TEST_CASE("Une nouvelle grille a les bonnes dimensions et est vide", "[grid]") {
 }
 
 TEST_CASE("Des dimensions invalides sont refusees", "[grid]") {
-    REQUIRE_THROWS_AS((Grid{0, 10}), InvalidDimensionException);
-    REQUIRE_THROWS_AS((Grid{10, -1}), InvalidDimensionException);
+    REQUIRE_THROWS_AS((Grid{0, 10}), GameException);
+    REQUIRE_THROWS_AS((Grid{10, -1}), GameException);
 }
 
 TEST_CASE("IsInBounds detecte les positions hors de la grille", "[grid]") {
@@ -65,13 +65,6 @@ TEST_CASE("GetTile et SetTile sont securises", "[grid]") {
         REQUIRE_FALSE(grid.SetTile(GridPos{5, 0}, TileType::Floor));
         REQUIRE(CountTiles(grid, TileType::Floor) == 0);
     }
-}
-
-TEST_CASE("Fill remplit toute la grille", "[grid]") {
-    auto grid = Grid{6, 6};
-    grid.Fill(TileType::Wall);
-
-    REQUIRE(CountTiles(grid, TileType::Wall) == 36);
 }
 
 TEST_CASE("IsWalkable accepte uniquement le sol et l'escalier", "[grid]") {

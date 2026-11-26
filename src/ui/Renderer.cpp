@@ -1,29 +1,23 @@
-// Module ui.renderer (implémentation) : chargement des sprites (RAII) et dessin des tuiles avec raylib.
-// Interface : Renderer.ixx
+// Module ui.renderer (implémentation) : sprites en RAII et dessin avec raylib.
 module;
-// raylib est incluse uniquement ici (fragment de module global) : elle reste invisible
-// pour les modules qui importent ui.renderer
 #include <raylib.h>
-// Import rapide de la bibliothèque standard
 import std;
 
-// Unité d'implémentation du module ui.renderer
 module ui.renderer;
 
 namespace ui {
 
-    // Texture raylib gérée en RAII : chargée par le constructeur, libérée par le destructeur
+    // Texture raylib en RAII : chargée à la construction, libérée à la destruction
     class TileSprite {
     public:
-        // Charge l'image file. Lève std::runtime_error si elle est introuvable ou invalide.
+        // Charge file. Lève std::runtime_error (nom du fichier seulement) en cas d'échec.
         explicit TileSprite(const std::filesystem::path& file) : texture{LoadTexture(file.string().c_str())} {
             if (texture.id == 0) {
-                // Seul le nom du fichier est affiché, pas le chemin complet
                 throw std::runtime_error{std::format("Sprite introuvable : {}", file.filename().string())};
             }
         }
 
-        // Libère la texture de la mémoire graphique
+        // Libère la texture
         ~TileSprite() {
             UnloadTexture(texture);
         }
@@ -31,8 +25,7 @@ namespace ui {
         TileSprite(const TileSprite&) = delete;
         TileSprite& operator=(const TileSprite&) = delete;
 
-        // Dessine le sprite sur la case de centre center : le bas du sprite est aligné
-        // sur le sommet bas du losange, ce qui permet des sprites plus hauts qu'une tuile
+        // Dessine le sprite sur la case de centre center (bas du sprite aligné sur le bas du losange)
         void DrawOnTile(const ScreenPos center) const {
             const auto position = Vector2{
                 center.x - halfTileWidth,
@@ -45,7 +38,7 @@ namespace ui {
         Texture2D texture;
     };
 
-    // Toutes les textures utilisées par le renderer
+    // Toutes les textures du renderer
     struct Renderer::Sprites {
         TileSprite asphalt;
         TileSprite pavement;
@@ -67,7 +60,7 @@ namespace ui {
               concreteBuilding{directory / "building_concrete.png"},
               stuccoBuilding{directory / "building_stucco.png"} {}
 
-        // Choisit une variante d'immeuble stable selon la position (même case = même immeuble)
+        // Renvoie la variante d'immeuble de la case pos (toujours la même pour une case)
         const TileSprite& BuildingAt(const core::GridPos pos) const {
             switch ((pos.x * 7 + pos.y * 13) % 3) {
                 case 0:
@@ -80,14 +73,17 @@ namespace ui {
         }
     };
 
-    // Fonctions internes à ce fichier (non exportées)
+    // Éléments internes à ce fichier
     namespace {
 
-        // Repère provisoire du joueur (en attendant son sprite) : cercle bleu au-dessus du sol
+        // Repère provisoire du joueur : cercle bleu au-dessus du sol
         constexpr Color playerColor{60, 140, 230, 255};
         constexpr Color playerOutlineColor{20, 40, 80, 255};
         constexpr float playerRadius{6.0f};
         constexpr float playerElevation{8.0f};
+
+        // Un immeuble (32 px) recouvre 2 rangées de cases derrière lui
+        constexpr int buildingRowsCovered{2};
 
         // Dessine le repère du joueur sur la case de centre center
         void DrawPlayerMarker(const ScreenPos center) {
@@ -96,10 +92,7 @@ namespace ui {
             DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), playerRadius, playerOutlineColor);
         }
 
-        // Nombre de rangées de cases qu'un immeuble (32 px de haut = 2 tuiles) recouvre à l'écran
-        constexpr int buildingRowsCovered{2};
-
-        // Indique si pos est une case de couloir : praticable et en dehors de toutes les salles
+        // Indique si pos est un couloir (praticable et hors de toute salle)
         bool IsCorridorTile(const core::Dungeon& dungeon, const core::GridPos pos) {
             return dungeon.grid.IsWalkable(pos)
                    && std::ranges::none_of(dungeon.rooms, [pos](const core::Room& room) {
@@ -107,9 +100,8 @@ namespace ui {
                       });
         }
 
-        // Indique si un immeuble en pos cacherait une case de couloir.
-        // Il recouvre à l'écran les cases (x - i, y - j) situées derrière lui avec
-        // |i - j| <= 1 et i + j <= 2 * buildingRowsCovered.
+        // Indique si un immeuble en pos cacherait un couloir : cases (x - i, y - j) derrière lui
+        // avec |i - j| <= 1 et i, j <= buildingRowsCovered
         bool HidesCorridorTile(const core::Dungeon& dungeon, const core::GridPos pos) {
             for (auto i = 0; i <= buildingRowsCovered; ++i) {
                 for (auto j = 0; j <= buildingRowsCovered; ++j) {
@@ -124,27 +116,20 @@ namespace ui {
 
     }
 
-    // Charge les sprites et calcule une fois l'origine qui centre la carte
     Renderer::Renderer(const int mapWidth, const int mapHeight, const int screenWidth, const int screenHeight,
                        const std::filesystem::path& spritesDirectory)
         : origin{CenteredOrigin(mapWidth, mapHeight, screenWidth, screenHeight)},
           sprites{std::make_unique<Sprites>(spritesDirectory)} {}
 
-    // Défini ici car Sprites n'est complet que dans ce fichier
+    // Défini ici : Sprites n'est complet que dans ce fichier
     Renderer::~Renderer() = default;
 
-    // Origine de la projection
-    ScreenPos Renderer::GetOrigin() const noexcept {
-        return origin;
-    }
-
-    // Parcours par diagonales : sum = x + y croissant (ordre du peintre)
     void Renderer::DrawDungeon(const core::Dungeon& dungeon, const core::Player& player) const {
         const auto& grid = dungeon.grid;
         const auto width = grid.GetWidth();
         const auto height = grid.GetHeight();
+        // Parcours par diagonales (sum = x + y), en gardant y = sum - x dans la grille
         for (auto sum = 0; sum <= width + height - 2; ++sum) {
-            // Sur une diagonale, x varie de façon à garder y = sum - x dans la grille
             const auto firstX = std::max(0, sum - (height - 1));
             const auto lastX = std::min(sum, width - 1);
             for (auto x = firstX; x <= lastX; ++x) {
@@ -153,26 +138,23 @@ namespace ui {
                 switch (grid.GetTile(pos).value_or(core::TileType::Empty)) {
                     case core::TileType::Floor:
                         if (pos == dungeon.playerStart) {
-                            // Départ : plaque d'égout
                             sprites->manhole.DrawOnTile(center);
                         } else {
                             (IsCorridorTile(dungeon, pos) ? sprites->asphalt : sprites->pavement).DrawOnTile(center);
                         }
                         break;
                     case core::TileType::Stairs:
-                        // Arrivée : bouche de métro
                         sprites->metro.DrawOnTile(center);
                         break;
                     case core::TileType::Wall:
-                        // Devant un couloir : trottoir bas pour laisser voir la rue
+                        // Trottoir bas devant un couloir pour laisser voir la rue
                         (HidesCorridorTile(dungeon, pos) ? sprites->sidewalk : sprites->BuildingAt(pos))
                             .DrawOnTile(center);
                         break;
                     case core::TileType::Empty:
-                        // Hors du donjon : rien à dessiner
                         break;
                 }
-                // Le joueur est dessiné juste après sa case : les immeubles placés devant le recouvrent
+                // Joueur dessiné juste après sa case : les immeubles devant lui le recouvrent
                 if (pos == player.GetPosition()) {
                     DrawPlayerMarker(center);
                 }
