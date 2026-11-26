@@ -1,21 +1,35 @@
 # Rogue Bike
 
-Jeu de rôle tactique au tour par tour en vue isométrique (pixel art 2.5D), réalisé en C++23 moderne.
-Le joueur explore des étages de donjon générés procéduralement, combat des ennemis et descend le plus profondément possible.
+Jeu de rôle tactique au tour par tour en vue isométrique (pixel art 2.5D), réalisé en C++23 moderne (TP noté C++ Moderne, esimed).
+Le joueur parcourt des quartiers générés procéduralement (places reliées par des rues), part d'une plaque d'égout, affronte des ennemis et rejoint la bouche de métro pour descendre à l'étage suivant.
+
+## État d'avancement
+
+| Jour | Contenu | État |
+|---|---|---|
+| 0 | Projet CMake (modèle du cours), raylib, Catch2 | Fait |
+| 1 | Grille, génération procédurale, tests | Fait |
+| 2 | Rendu isométrique, sprites pixel art, fenêtre 1920x1080 | Fait |
+| 3 | Entités (joueur, ennemis) et déplacements | À faire |
+| 4 | Tour par tour et combats | À faire |
+| 5 | IA des ennemis (pathfinding) | À faire |
+| 6 | Potions, étages, HUD | À faire |
+| 7 | Finitions, audit, soutenance | À faire |
 
 ## Technologies
 
-- C++23 avec modules (`.ixx`, `import std;`)
+- C++23 avec modules (`.ixx` / `.cpp`, `import std;`)
 - LLVM/Clang 22 (LLVM-MinGW UCRT sous Windows), CMake ≥ 3.29, Ninja
 - [raylib 5.5](https://www.raylib.com/) pour l'affichage (récupérée par `FetchContent`)
 - [Catch2 v3](https://github.com/catchorg/Catch2) pour les tests unitaires (récupérée par `FetchContent`)
+- Python 3 + Pillow (optionnel) pour régénérer les sprites
 - IDE : JetBrains CLion
 
 ## Arborescence
 
 ```
 .
-├── CMakeLists.txt          # Cibles : rogueCore, rogueUi, RogueBike, tests
+├── CMakeLists.txt          # Cibles : rogueCore, rogueUi, RogueBike, tests, copyAssets
 ├── cmake/
 │   ├── std.cmake           # Compilation de la bibliothèque standard en module (modèle du cours)
 │   ├── compile_options.cmake
@@ -25,18 +39,18 @@ Le joueur explore des étages de donjon générés procéduralement, combat des 
 ├── tools/
 │   └── GenerateSprites.py  # Script Python (Pillow) qui régénère les sprites
 ├── src/
-│   ├── core/               # Logique métier, SANS dépendance graphique
-│   │   ├── Config.ixx      # Module core.config : constantes du jeu
+│   ├── core/               # Bibliothèque rogueCore : logique métier, SANS dépendance graphique
+│   │   ├── Config.ixx                                  # core.config : fenêtre, taille de carte, graine
 │   │   ├── Exceptions.ixx / Exceptions.cpp             # core.exceptions : InvalidDimensionException
 │   │   ├── Grid.ixx / Grid.cpp                         # core.grid : GridPos, TileType, Grid (accès vérifiés)
-│   │   └── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, couloirs en L, escalier
-│   ├── ui/                 # Affichage (bibliothèque rogueUi)
-│   │   ├── IsoMath.ixx     # ui.isoMath : projection isométrique constexpr (tuiles 32x16)
+│   │   └── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, rues, départ, sortie
+│   ├── ui/                 # Bibliothèque rogueUi : affichage (seule partie qui utilise raylib)
+│   │   ├── IsoMath.ixx                       # ui.isoMath : projection isométrique constexpr (tuiles 32x16)
 │   │   ├── Window.ixx / Window.cpp           # ui.window : fenêtre raylib en RAII
 │   │   ├── Renderer.ixx / Renderer.cpp       # ui.renderer : sprites pixel art (RAII), ordre du peintre
 │   │   └── Application.ixx / Application.cpp # ui.application : boucle de jeu, clavier
 │   └── main.cpp            # Point d'entrée : crée l'application et la lance
-└── tests/                  # Tests unitaires Catch2 (logique métier uniquement)
+└── tests/                  # Tests unitaires Catch2 (logique métier + mathématiques de projection)
     ├── ConfigTests.cpp
     ├── GridTests.cpp
     ├── DungeonGeneratorTests.cpp
@@ -72,16 +86,25 @@ python tools/GenerateSprites.py
   .\build\RogueBike.exe
   .\build\tests.exe
   ```
+  Les sprites sont copiés automatiquement dans `build/assets/` (cible `copyAssets`).
 
 ## Exemples d'utilisation
 
-- Lancer `RogueBike` : le donjon s'affiche en vue isométrique dans une fenêtre 1280x720.
-- `R` : génère le donjon suivant (graine + 1, affichée en haut à gauche).
+- Lancer `RogueBike` : le quartier s'affiche en vue isométrique dans une fenêtre 1920x1080, caméra fixe montrant toute la carte.
+- `R` : génère le quartier suivant (graine + 1, affichée en haut à gauche).
 - `Échap` ou la croix : quitter.
-- Thème urbain : places pavées (salles), rues en asphalte (couloirs), immeubles (murs, 3 variantes), trottoirs (murs placés devant une rue, abaissés pour la laisser visible), bouche de métro (sortie de l'étage).
-- Les murs font toujours une seule case d'épaisseur.
-- Le donjon de démo est toujours le même (carte 40x30, graine fixe `dungeonSeed` dans `core.config`).
 - Lancer `tests` : Catch2 affiche le résultat des tests (`All tests passed`).
+
+### Génération et rendu
+
+- Carte de 60x45 cases, 7 à 9 salles de 5x5 à 10x10, reliées par des couloirs en L.
+- Thème urbain :
+  - places pavées (salles) et rues en asphalte (couloirs) ;
+  - immeubles de 2 étages en 3 variantes (brique, béton, crépi) pour les murs ;
+  - trottoirs gris à la place des immeubles qui cacheraient une rue ;
+  - plaque d'égout sur la case de départ, bouche de métro sur la sortie.
+- Les murs font toujours une seule case d'épaisseur.
+- Le quartier de démo est toujours le même (graine fixe `dungeonSeed` dans `core.config`).
 
 ## Conventions de code
 
@@ -90,16 +113,20 @@ python tools/GenerateSprites.py
 - Chaque module est séparé en interface `.ixx` (déclarations commentées) et implémentation `.cpp` (`module nom;`) ; seules les constantes et fonctions `constexpr` restent dans l'interface
 - `struct` uniquement pour les données sans code (`GridPos`, `Dungeon`), `class` pour le reste
 - `const` sur les paramètres, y compris dans les déclarations des `.ixx`
-- Initialisation `{}`, `auto`, `const` dès que possible, aucun `new`/`delete`
+- Initialisation `{}`, `auto`, `const` dès que possible
+- Gestion mémoire : `std::unique_ptr` pour la possession, références pour l'accès ; aucun `new`/`delete`, ni `std::shared_ptr`/`std::weak_ptr` ; pas de `std::span`
+- raylib n'est incluse que dans les `.cpp` de `ui` : les interfaces des modules n'en dépendent pas
 
 ## Sécurité
 
 - Avertissements traités comme des erreurs (`-Werror`) sur tout le code du projet.
-- Aucune allocation manuelle : gestion mémoire en RAII (`std::unique_ptr`, conteneurs STL) ; la fenêtre raylib est ouverte et fermée par `ui::Application` (RAII, non copiable).
+- Aucune allocation manuelle : gestion mémoire en RAII (`std::unique_ptr`, conteneurs STL).
+- Fenêtre raylib ouverte et fermée par `ui::Window` (RAII, non copiable), créée avant les textures et détruite après elles.
 - Les erreurs fatales sont attrapées dans `main` et affichées avec un message court, sans détail interne.
 - Accès à la grille avec vérification des bornes (`std::optional`) pour éviter les dépassements mémoire.
 - Dimensions invalides (grille, carte, salle) refusées par une exception dédiée `core::InvalidDimensionException`.
 - Programmation par contrat : `assert` sur les préconditions internes (actif en Debug).
+- Génération bornée : nombre d'essais de placement et de passes d'amincissement limité (pas de boucle infinie).
 - Dépendances téléchargées depuis leurs dépôts officiels avec une version figée (`GIT_TAG`).
 - Le jeu ne lit aucune donnée externe hormis ses sprites, chargés depuis un chemin fixe relatif à l'exécutable (aucune donnée utilisateur dans le chemin), et ne fait aucun accès réseau.
-- Un sprite manquant provoque une erreur claire (nom du fichier uniquement, sans chemin complet) ; textures et fenêtre sont libérées en RAII dans le bon ordre.
+- Un sprite manquant provoque une erreur claire (nom du fichier uniquement, sans chemin complet).
