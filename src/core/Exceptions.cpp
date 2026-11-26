@@ -17,4 +17,12 @@ namespace core {
         return message.c_str();
     }
 
+    // Mémorise le message d'erreur
+    InvalidStatException::InvalidStatException(const std::string& message) : message{message} {}
+
+    // Renvoie le message d'erreur
+    const char* InvalidStatException::what() const noexcept {
+        return message.c_str();
+    }
+
 }

@@ -20,11 +20,12 @@ namespace ui {
         constexpr int helpMargin{20};
     }
 
-    // Fenêtre d'abord (membre déclaré en premier), puis donjon et renderer
+    // Fenêtre d'abord (membre déclaré en premier), puis donjon, joueur (sur la plaque d'égout) et renderer
     Application::Application()
         : window{core::windowWidth, core::windowHeight, core::windowTitle, core::targetFps},
           seed{core::dungeonSeed},
           dungeon{CreateDungeon(core::dungeonSeed)},
+          player{dungeon.playerStart},
           renderer{core::mapWidth, core::mapHeight, core::windowWidth, core::windowHeight, SpritesDirectory()} {}
 
     // Boucle principale : entrées, puis dessin, à chaque image
@@ -37,18 +38,19 @@ namespace ui {
         }
     }
 
-    // R : génère le donjon suivant (graine + 1)
+    // R : génère le donjon suivant (graine + 1) et replace le joueur sur le nouveau départ
     void Application::HandleInput() {
         if (IsKeyPressed(KEY_R)) {
             ++seed;
             dungeon = CreateDungeon(seed);
+            player.SetPosition(dungeon.playerStart);
         }
     }
 
     // Efface l'écran, dessine la carte puis l'aide (sans accents : police raylib par défaut)
     void Application::Draw() const {
         ClearBackground(backgroundColor);
-        renderer.DrawDungeon(dungeon);
+        renderer.DrawDungeon(dungeon, player);
         const auto help = std::format("Graine : {}   |   R : nouveau donjon   |   Echap : quitter", seed);
         DrawText(help.c_str(), helpMargin, helpMargin, helpFontSize, RAYWHITE);
     }

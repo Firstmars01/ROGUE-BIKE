@@ -83,6 +83,19 @@ namespace ui {
     // Fonctions internes à ce fichier (non exportées)
     namespace {
 
+        // Repère provisoire du joueur (en attendant son sprite) : cercle bleu au-dessus du sol
+        constexpr Color playerColor{60, 140, 230, 255};
+        constexpr Color playerOutlineColor{20, 40, 80, 255};
+        constexpr float playerRadius{6.0f};
+        constexpr float playerElevation{8.0f};
+
+        // Dessine le repère du joueur sur la case de centre center
+        void DrawPlayerMarker(const ScreenPos center) {
+            const auto position = Vector2{center.x, center.y - playerElevation};
+            DrawCircleV(position, playerRadius, playerColor);
+            DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), playerRadius, playerOutlineColor);
+        }
+
         // Nombre de rangées de cases qu'un immeuble (32 px de haut = 2 tuiles) recouvre à l'écran
         constexpr int buildingRowsCovered{2};
 
@@ -126,7 +139,7 @@ namespace ui {
     }
 
     // Parcours par diagonales : sum = x + y croissant (ordre du peintre)
-    void Renderer::DrawDungeon(const core::Dungeon& dungeon) const {
+    void Renderer::DrawDungeon(const core::Dungeon& dungeon, const core::Player& player) const {
         const auto& grid = dungeon.grid;
         const auto width = grid.GetWidth();
         const auto height = grid.GetHeight();
@@ -158,6 +171,10 @@ namespace ui {
                     case core::TileType::Empty:
                         // Hors du donjon : rien à dessiner
                         break;
+                }
+                // Le joueur est dessiné juste après sa case : les immeubles placés devant le recouvrent
+                if (pos == player.GetPosition()) {
+                    DrawPlayerMarker(center);
                 }
             }
         }

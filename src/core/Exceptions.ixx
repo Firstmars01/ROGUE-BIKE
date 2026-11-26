@@ -22,4 +22,17 @@ export namespace core {
         std::string message;
     };
 
+    // Exception levée lorsqu'une statistique d'entité (PV, attaque) est invalide
+    class InvalidStatException : public std::exception {
+    public:
+        // Crée l'exception. message : description de l'erreur
+        explicit InvalidStatException(const std::string& message);
+
+        // Renvoie la description de l'erreur
+        const char* what() const noexcept override;
+
+    private:
+        std::string message;
+    };
+
 }

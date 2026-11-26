@@ -9,12 +9,13 @@ import std;
 export module ui.application;
 
 import core.dungeonGenerator;
+import core.entities;
 import ui.window;
 import ui.renderer;
 
 export namespace ui {
 
-    // Application principale : possède la fenêtre, l'étage courant et le renderer.
+    // Application principale : possède la fenêtre, l'étage courant, le joueur et le renderer.
     // Non copiable (la fenêtre ne l'est pas) ; ressources libérées automatiquement (RAII).
     class Application {
     public:
@@ -26,7 +27,7 @@ export namespace ui {
         void Run();
 
     private:
-        // Traite les touches du clavier (R : nouveau donjon)
+        // Traite les touches du clavier (R : nouveau donjon, joueur replacé au départ)
         void HandleInput();
 
         // Dessine l'image courante (carte et aide à l'écran)
@@ -44,6 +45,7 @@ export namespace ui {
         Window window;
         std::uint32_t seed;
         core::Dungeon dungeon;
+        core::Player player;
         Renderer renderer;
     };
 

@@ -12,6 +12,7 @@ export module ui.renderer;
 
 import core.grid;
 import core.dungeonGenerator;
+import core.entities;
 import ui.isoMath;
 
 export namespace ui {
@@ -35,11 +36,11 @@ export namespace ui {
         // Renvoie la position écran du centre de la case (0, 0)
         ScreenPos GetOrigin() const noexcept;
 
-        // Dessine tout l'étage dans l'ordre du peintre (x + y croissant).
+        // Dessine tout l'étage et le joueur dans l'ordre du peintre (x + y croissant).
         // Salles en pavés, couloirs en asphalte, murs en immeubles, plaque d'égout sur le départ,
-        // bouche de métro sur l'escalier ; un mur qui cacherait un couloir
+        // bouche de métro sur l'escalier, joueur (repère provisoire) sur sa case ; un mur qui cacherait un couloir
         // est remplacé par un trottoir. À appeler entre BeginDrawing() et EndDrawing().
-        void DrawDungeon(const core::Dungeon& dungeon) const;
+        void DrawDungeon(const core::Dungeon& dungeon, const core::Player& player) const;
 
     private:
         // Ensemble des textures chargées (défini dans Renderer.cpp)

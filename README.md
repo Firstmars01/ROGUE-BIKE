@@ -1,20 +1,7 @@
 # Rogue Bike
 
-Jeu de rôle tactique au tour par tour en vue isométrique (pixel art 2.5D), réalisé en C++23 moderne (TP noté C++ Moderne, esimed).
+Jeu de rôle tactique au tour par tour en vue isométrique (pixel art 2.5D), réalisé en C++23 moderne.
 Le joueur parcourt des quartiers générés procéduralement (places reliées par des rues), part d'une plaque d'égout, affronte des ennemis et rejoint la bouche de métro pour descendre à l'étage suivant.
-
-## État d'avancement
-
-| Jour | Contenu | État |
-|---|---|---|
-| 0 | Projet CMake (modèle du cours), raylib, Catch2 | Fait |
-| 1 | Grille, génération procédurale, tests | Fait |
-| 2 | Rendu isométrique, sprites pixel art, fenêtre 1920x1080 | Fait |
-| 3 | Entités (joueur, ennemis) et déplacements | À faire |
-| 4 | Tour par tour et combats | À faire |
-| 5 | IA des ennemis (pathfinding) | À faire |
-| 6 | Potions, étages, HUD | À faire |
-| 7 | Finitions, audit, soutenance | À faire |
 
 ## Technologies
 
@@ -41,9 +28,10 @@ Le joueur parcourt des quartiers générés procéduralement (places reliées pa
 ├── src/
 │   ├── core/               # Bibliothèque rogueCore : logique métier, SANS dépendance graphique
 │   │   ├── Config.ixx                                  # core.config : fenêtre, taille de carte, graine
-│   │   ├── Exceptions.ixx / Exceptions.cpp             # core.exceptions : InvalidDimensionException
+│   │   ├── Exceptions.ixx / Exceptions.cpp             # core.exceptions : InvalidDimensionException, InvalidStatException
 │   │   ├── Grid.ixx / Grid.cpp                         # core.grid : GridPos, TileType, Grid (accès vérifiés)
-│   │   └── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, rues, départ, sortie
+│   │   ├── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, rues, départ, sortie
+│   │   └── Entities.ixx / Entities.cpp                 # core.entities : Entity (abstraite), Player
 │   ├── ui/                 # Bibliothèque rogueUi : affichage (seule partie qui utilise raylib)
 │   │   ├── IsoMath.ixx                       # ui.isoMath : projection isométrique constexpr (tuiles 32x16)
 │   │   ├── Window.ixx / Window.cpp           # ui.window : fenêtre raylib en RAII
@@ -54,14 +42,13 @@ Le joueur parcourt des quartiers générés procéduralement (places reliées pa
     ├── ConfigTests.cpp
     ├── GridTests.cpp
     ├── DungeonGeneratorTests.cpp
+    ├── EntitiesTests.cpp
     └── IsoMathTests.cpp
 ```
 
-Prévu : les modules `core.entities`, `core.game`, `core.pathfinding`.
-
 ## Installation
 
-1. Installer la toolchain du TP0 : LLVM-MinGW 22.x (UCRT), CMake, Ninja, CLion.
+1. Installer la toolchain : LLVM-MinGW 22.x (UCRT), CMake, Ninja, CLion.
 2. Cloner le dépôt :
    ```
    git clone https://github.com/Firstmars01/ROGUE-BIKE.git
@@ -91,7 +78,8 @@ python tools/GenerateSprites.py
 ## Exemples d'utilisation
 
 - Lancer `RogueBike` : le quartier s'affiche en vue isométrique dans une fenêtre 1920x1080, caméra fixe montrant toute la carte.
-- `R` : génère le quartier suivant (graine + 1, affichée en haut à gauche).
+- Le joueur (repère provisoire : cercle bleu) apparaît sur la plaque d'égout. Il ne se déplace pas encore.
+- `R` : génère le quartier suivant (graine + 1, affichée en haut à gauche) et replace le joueur au départ.
 - `Échap` ou la croix : quitter.
 - Lancer `tests` : Catch2 affiche le résultat des tests (`All tests passed`).
 
@@ -125,6 +113,7 @@ python tools/GenerateSprites.py
 - Les erreurs fatales sont attrapées dans `main` et affichées avec un message court, sans détail interne.
 - Accès à la grille avec vérification des bornes (`std::optional`) pour éviter les dépassements mémoire.
 - Dimensions invalides (grille, carte, salle) refusées par une exception dédiée `core::InvalidDimensionException`.
+- Statistiques d'entité invalides (PV ou attaque ≤ 0) refusées par `core::InvalidStatException` ; les PV ne deviennent jamais négatifs et des dégâts négatifs sont ignorés.
 - Programmation par contrat : `assert` sur les préconditions internes (actif en Debug).
 - Génération bornée : nombre d'essais de placement et de passes d'amincissement limité (pas de boucle infinie).
 - Dépendances téléchargées depuis leurs dépôts officiels avec une version figée (`GIT_TAG`).
