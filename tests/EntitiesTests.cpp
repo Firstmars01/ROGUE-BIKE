@@ -1,6 +1,7 @@
 // Tests unitaires du module core.entities : création, dégâts, mort, polymorphisme.
 #include <catch2/catch_all.hpp>
 #include <memory>
+#include <vector>
 
 import core.grid;
 import core.entities;
@@ -80,6 +81,25 @@ TEST_CASE("Des degats negatifs sont ignores", "[entities]") {
     player.TakeDamage(5);
     player.TakeDamage(-20);
     REQUIRE(player.GetHealth() == Player::startHealth - 5);
+}
+
+TEST_CASE("Un ennemi demarre sur sa case avec ses statistiques", "[entities]") {
+    const auto enemy = Enemy{GridPos{3, 9}};
+
+    REQUIRE(enemy.GetPosition() == GridPos{3, 9});
+    REQUIRE(enemy.GetHealth() == Enemy::startHealth);
+    REQUIRE(enemy.GetAttack() == Enemy::startAttack);
+    REQUIRE(enemy.GetName() == "Voyou");
+}
+
+TEST_CASE("Joueur et ennemis se manipulent ensemble via Entity (polymorphisme)", "[entities]") {
+    auto entities = std::vector<std::unique_ptr<Entity>>{};
+    entities.push_back(std::make_unique<Player>(GridPos{0, 0}));
+    entities.push_back(std::make_unique<Enemy>(GridPos{1, 0}));
+
+    // Appels virtuels : chaque classe dérivée répond avec son propre nom
+    REQUIRE(entities[0]->GetName() == "Motard");
+    REQUIRE(entities[1]->GetName() == "Voyou");
 }
 
 TEST_CASE("Le joueur s'utilise via un pointeur sur Entity (polymorphisme)", "[entities]") {

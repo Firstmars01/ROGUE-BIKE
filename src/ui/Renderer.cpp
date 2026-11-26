@@ -25,13 +25,14 @@ namespace ui {
         TileSprite(const TileSprite&) = delete;
         TileSprite& operator=(const TileSprite&) = delete;
 
-        // Dessine le sprite sur la case de centre center (bas du sprite aligné sur le bas du losange)
-        void DrawOnTile(const ScreenPos center) const {
+        // Dessine le sprite sur la case de centre center (bas du sprite aligné sur le bas du losange).
+        // tint : teinte et transparence (blanc opaque par défaut)
+        void DrawOnTile(const ScreenPos center, const Color tint = WHITE) const {
             const auto position = Vector2{
                 center.x - halfTileWidth,
                 center.y + halfTileHeight - static_cast<float>(texture.height)
             };
-            DrawTextureV(texture, position, WHITE);
+            DrawTextureV(texture, position, tint);
         }
 
     private:
@@ -76,11 +77,13 @@ namespace ui {
     // Éléments internes à ce fichier
     namespace {
 
-        // Repère provisoire du joueur : cercle bleu au-dessus du sol
+        // Repères provisoires des entités : cercles colorés au-dessus du sol
         constexpr Color playerColor{60, 140, 230, 255};
         constexpr Color playerOutlineColor{20, 40, 80, 255};
-        constexpr float playerRadius{6.0f};
-        constexpr float playerElevation{8.0f};
+        constexpr Color enemyColor{220, 50, 50, 255};
+        constexpr Color enemyOutlineColor{90, 15, 15, 255};
+        constexpr float markerRadius{6.0f};
+        constexpr float markerElevation{8.0f};
 
         // Surcouches des cases praticables (semi-transparentes)
         constexpr Color gridLineColor{255, 255, 255, 40};
@@ -90,6 +93,9 @@ namespace ui {
 
         // Un immeuble (32 px) recouvre 2 rangées de cases derrière lui
         constexpr int buildingRowsCovered{2};
+
+        // Immeuble à moitié transparent quand il cache une entité ou la case visée
+        constexpr Color seeThroughTint{255, 255, 255, 90};
 
         // Les 4 sommets du losange d'une case
         struct Diamond {
@@ -146,11 +152,11 @@ namespace ui {
             }
         }
 
-        // Dessine le repère du joueur sur la case de centre center
-        void DrawPlayerMarker(const ScreenPos center) {
-            const auto position = Vector2{center.x, center.y - playerElevation};
-            DrawCircleV(position, playerRadius, playerColor);
-            DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), playerRadius, playerOutlineColor);
+        // Dessine un repère d'entité (cercle plein et contour) sur la case de centre center
+        void DrawMarker(const ScreenPos center, const Color fill, const Color outline) {
+            const auto position = Vector2{center.x, center.y - markerElevation};
+            DrawCircleV(position, markerRadius, fill);
+            DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), markerRadius, outline);
         }
 
         // Indique si pos est un couloir (praticable et hors de toute salle)
@@ -161,18 +167,36 @@ namespace ui {
                       });
         }
 
-        // Indique si un immeuble en pos cacherait un couloir : cases (x - i, y - j) derrière lui
-        // avec |i - j| <= 1 et i, j <= buildingRowsCovered
+        // Indique si un immeuble en building recouvre à l'écran la case target : cases (x - i, y - j)
+        // derrière lui avec |i - j| <= 1 et i, j <= buildingRowsCovered
+        bool Covers(const core::GridPos building, const core::GridPos target) {
+            const auto i = building.x - target.x;
+            const auto j = building.y - target.y;
+            return i >= 0 && j >= 0 && i <= buildingRowsCovered && j <= buildingRowsCovered
+                   && i + j > 0 && std::abs(i - j) <= 1;
+        }
+
+        // Indique si un immeuble en pos cacherait un couloir
         bool HidesCorridorTile(const core::Dungeon& dungeon, const core::GridPos pos) {
             for (auto i = 0; i <= buildingRowsCovered; ++i) {
                 for (auto j = 0; j <= buildingRowsCovered; ++j) {
-                    const auto behind = (i + j > 0) && std::abs(i - j) <= 1;
-                    if (behind && IsCorridorTile(dungeon, core::GridPos{pos.x - i, pos.y - j})) {
+                    const auto behind = core::GridPos{pos.x - i, pos.y - j};
+                    if (Covers(pos, behind) && IsCorridorTile(dungeon, behind)) {
                         return true;
                     }
                 }
             }
             return false;
+        }
+
+        // Indique si un immeuble en pos cache le joueur, un ennemi ou la case sous la souris
+        bool HidesImportantTile(const SceneView& scene, const core::GridPos pos) {
+            if (Covers(pos, scene.player.GetPosition()) || (scene.hoveredTile && Covers(pos, *scene.hoveredTile))) {
+                return true;
+            }
+            return std::ranges::any_of(scene.enemies, [pos](const auto& enemy) {
+                return Covers(pos, enemy->GetPosition());
+            });
         }
 
     }
@@ -189,9 +213,8 @@ namespace ui {
         return ScreenToGrid(screen, origin);
     }
 
-    void Renderer::DrawDungeon(const core::Dungeon& dungeon, const core::Player& player,
-                               const std::vector<core::GridPos>& reachableTiles,
-                               const std::optional<core::GridPos> hoveredTile) const {
+    void Renderer::DrawScene(const SceneView& scene) const {
+        const auto& dungeon = scene.dungeon;
         const auto& grid = dungeon.grid;
         const auto width = grid.GetWidth();
         const auto height = grid.GetHeight();
@@ -214,21 +237,31 @@ namespace ui {
                         sprites->metro.DrawOnTile(center);
                         break;
                     case core::TileType::Wall:
-                        // Trottoir bas devant un couloir pour laisser voir la rue
-                        (HidesCorridorTile(dungeon, pos) ? sprites->sidewalk : sprites->BuildingAt(pos))
-                            .DrawOnTile(center);
+                        if (HidesCorridorTile(dungeon, pos)) {
+                            // Trottoir bas devant un couloir pour laisser voir la rue
+                            sprites->sidewalk.DrawOnTile(center);
+                        } else {
+                            // Immeuble, transparent s'il cache une entité ou la case visée
+                            sprites->BuildingAt(pos).DrawOnTile(center, HidesImportantTile(scene, pos) ? seeThroughTint : WHITE);
+                        }
                         break;
                     case core::TileType::Empty:
                         break;
                 }
                 // Surcouches juste après la case : les immeubles placés devant les recouvrent
                 if (grid.IsWalkable(pos)) {
-                    const auto reachable = std::ranges::find(reachableTiles, pos) != reachableTiles.end();
-                    DrawTileOverlays(center, reachable, hoveredTile == pos);
+                    const auto reachable = std::ranges::find(scene.reachableTiles, pos) != scene.reachableTiles.end();
+                    DrawTileOverlays(center, reachable, scene.hoveredTile == pos);
                 }
-                // Joueur dessiné juste après sa case : les immeubles devant lui le recouvrent
-                if (pos == player.GetPosition()) {
-                    DrawPlayerMarker(center);
+                // Entités dessinées juste après leur case : les immeubles devant elles les recouvrent
+                if (pos == scene.player.GetPosition()) {
+                    DrawMarker(center, playerColor, playerOutlineColor);
+                }
+                const auto hasEnemy = std::ranges::any_of(scene.enemies, [pos](const auto& enemy) {
+                    return enemy->GetPosition() == pos;
+                });
+                if (hasEnemy) {
+                    DrawMarker(center, enemyColor, enemyOutlineColor);
                 }
             }
         }

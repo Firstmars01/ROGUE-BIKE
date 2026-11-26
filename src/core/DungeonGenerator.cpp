@@ -79,7 +79,37 @@ namespace core {
             AddWallsAroundFloors(grid);
         }
 
-        return Dungeon{std::move(grid), rooms, playerStart, stairs};
+        // Ennemis placés en dernier : la forme de l'étage ne dépend pas de leur tirage
+        auto enemySpawns = PlaceEnemies(rooms, stairs);
+        return Dungeon{std::move(grid), rooms, playerStart, stairs, std::move(enemySpawns)};
+    }
+
+    int DungeonGenerator::EnemyCountFor(const Room& room) noexcept {
+        constexpr auto minArea = minRoomSize * minRoomSize;
+        constexpr auto maxArea = maxRoomSize * maxRoomSize;
+        const auto area = std::clamp(room.GetWidth() * room.GetHeight(), minArea, maxArea);
+        return minEnemiesPerRoom + (area - minArea) * (maxEnemiesPerRoom - minEnemiesPerRoom) / (maxArea - minArea);
+    }
+
+    std::vector<GridPos> DungeonGenerator::PlaceEnemies(const std::vector<Room>& rooms, const GridPos excluded) {
+        auto spawns = std::vector<GridPos>{};
+        // rooms.front() est la salle de départ : on commence à la deuxième
+        for (auto index = std::size_t{1}; index < rooms.size(); ++index) {
+            const auto& room = rooms[index];
+            // Toutes les cases libres de la salle, mélangées, puis on garde les premières
+            auto candidates = std::vector<GridPos>{};
+            for (auto y = room.GetY(); y < room.GetY() + room.GetHeight(); ++y) {
+                for (auto x = room.GetX(); x < room.GetX() + room.GetWidth(); ++x) {
+                    if (GridPos{x, y} != excluded) {
+                        candidates.push_back(GridPos{x, y});
+                    }
+                }
+            }
+            std::ranges::shuffle(candidates, random);
+            const auto count = std::min(static_cast<std::size_t>(EnemyCountFor(room)), candidates.size());
+            spawns.insert(spawns.end(), candidates.begin(), candidates.begin() + static_cast<std::ptrdiff_t>(count));
+        }
+        return spawns;
     }
 
     int DungeonGenerator::RandomInt(const int min, const int max) {

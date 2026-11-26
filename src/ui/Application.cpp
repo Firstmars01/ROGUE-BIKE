@@ -21,6 +21,7 @@ namespace ui {
           seed{core::dungeonSeed},
           dungeon{CreateDungeon(core::dungeonSeed)},
           player{dungeon.playerStart},
+          enemies{CreateEnemies(dungeon)},
           renderer{core::mapWidth, core::mapHeight, core::windowWidth, core::windowHeight, SpritesDirectory()} {
         UpdateReachableTiles();
     }
@@ -47,6 +48,7 @@ namespace ui {
             ++seed;
             dungeon = CreateDungeon(seed);
             player.SetPosition(dungeon.playerStart);
+            enemies = CreateEnemies(dungeon);
             UpdateReachableTiles();
         }
     }
@@ -57,7 +59,7 @@ namespace ui {
 
     void Application::Draw() const {
         ClearBackground(backgroundColor);
-        renderer.DrawDungeon(dungeon, player, reachableTiles, hoveredTile);
+        renderer.DrawScene(SceneView{dungeon, player, enemies, reachableTiles, hoveredTile});
         // Sans accents : la police par défaut de raylib ne les gère pas
         const auto help = std::format("Graine : {}   |   Clic gauche : se deplacer (zone bleue)   |   R : nouveau donjon   |   Echap : quitter", seed);
         DrawText(help.c_str(), helpMargin, helpMargin, helpFontSize, RAYWHITE);
@@ -66,6 +68,14 @@ namespace ui {
     core::Dungeon Application::CreateDungeon(const std::uint32_t seed) {
         auto generator = core::DungeonGenerator{seed};
         return generator.Generate(core::mapWidth, core::mapHeight);
+    }
+
+    std::vector<std::unique_ptr<core::Enemy>> Application::CreateEnemies(const core::Dungeon& dungeon) {
+        auto created = std::vector<std::unique_ptr<core::Enemy>>{};
+        for (const auto& spawn : dungeon.enemySpawns) {
+            created.push_back(std::make_unique<core::Enemy>(spawn));
+        }
+        return created;
     }
 
     std::filesystem::path Application::SpritesDirectory() {

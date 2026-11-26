@@ -50,6 +50,7 @@ export namespace core {
         std::vector<Room> rooms;  // Salles, dans l'ordre où elles sont reliées
         GridPos playerStart;      // Départ (centre de la première salle)
         GridPos stairs;           // Sortie (centre de la dernière salle)
+        std::vector<GridPos> enemySpawns;  // Cases de départ des ennemis (hors salle de départ)
     };
 
     // Générateur procédural basé sur std::mt19937
@@ -63,9 +64,15 @@ export namespace core {
         static constexpr int maxPlacementAttempts{500};    // Garde-fou du placement des salles
         static constexpr int maxThinningPasses{10};        // Garde-fou de l'amincissement des murs
         static constexpr int minMapSize{maxRoomSize + 2};  // Carte minimale (une salle + ses murs)
+        static constexpr int minEnemiesPerRoom{2};          // Ennemis dans la plus petite salle
+        static constexpr int maxEnemiesPerRoom{5};          // Ennemis dans la plus grande salle
 
         // seed : graine du générateur aléatoire
         explicit DungeonGenerator(const std::uint32_t seed);
+
+        // Renvoie le nombre d'ennemis d'une salle : de minEnemiesPerRoom (5x5)
+        // à maxEnemiesPerRoom (10x10), proportionnel à sa surface
+        static int EnemyCountFor(const Room& room) noexcept;
 
         // Génère un étage width x height. Lève GameException si la carte est trop petite
         // ou si moins de deux salles ont pu être placées.
@@ -102,6 +109,10 @@ export namespace core {
 
         // Indique si pos appartient à une salle
         static bool IsInAnyRoom(const std::vector<Room>& rooms, const GridPos pos);
+
+        // Choisit au hasard les cases des ennemis : EnemyCountFor(salle) cases distinctes par salle,
+        // sauf la salle de départ, jamais sur excluded (la sortie)
+        std::vector<GridPos> PlaceEnemies(const std::vector<Room>& rooms, const GridPos excluded);
 
         // Indique si une des 8 cases voisines de pos est praticable
         static bool HasWalkableNeighbour(const Grid& grid, const GridPos pos);

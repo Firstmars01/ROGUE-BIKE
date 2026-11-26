@@ -13,7 +13,7 @@ import ui.renderer;
 
 export namespace ui {
 
-    // Application : fenêtre, étage, joueur et renderer (libérés automatiquement, non copiable)
+    // Application : fenêtre, étage, joueur, ennemis et renderer (libérés automatiquement, non copiable)
     class Application {
     public:
         // Ouvre la fenêtre, génère le quartier de démo et charge les sprites.
@@ -36,6 +36,9 @@ export namespace ui {
         // Renvoie un étage de la taille de core.config généré avec seed
         static core::Dungeon CreateDungeon(const std::uint32_t seed);
 
+        // Crée un ennemi sur chaque case de départ prévue par l'étage
+        static std::vector<std::unique_ptr<core::Enemy>> CreateEnemies(const core::Dungeon& dungeon);
+
         // Renvoie le dossier des sprites (copié à côté de l'exécutable par CMake)
         static std::filesystem::path SpritesDirectory();
 
@@ -44,6 +47,7 @@ export namespace ui {
         std::uint32_t seed;
         core::Dungeon dungeon;
         core::Player player;
+        std::vector<std::unique_ptr<core::Enemy>> enemies;   // Seul propriétaire des ennemis
         Renderer renderer;
         std::vector<core::GridPos> reachableTiles;     // Zone de déplacement du joueur
         std::optional<core::GridPos> hoveredTile;      // Case praticable sous la souris

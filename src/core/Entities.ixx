@@ -1,4 +1,4 @@
-// Module core.entities (interface) : classe abstraite Entity et joueur.
+// Module core.entities (interface) : classe abstraite Entity, joueur et ennemis.
 // Implémentation : Entities.cpp
 module;
 import std;
@@ -73,6 +73,19 @@ export namespace core {
 
     private:
         int speed{startSpeed};
+    };
+
+    // Ennemi : un voyou du quartier (statistiques utilisées à partir des combats)
+    class Enemy final : public Entity {
+    public:
+        static constexpr int startHealth{10};
+        static constexpr int startAttack{3};
+
+        // Crée un ennemi sur la case position
+        explicit Enemy(const GridPos position);
+
+        // Renvoie "Voyou"
+        std::string GetName() const override;
     };
 
 }

@@ -198,6 +198,39 @@ TEST_CASE("Les murs entre deux zones praticables font une seule case d'epaisseur
     }
 }
 
+TEST_CASE("Le nombre d'ennemis depend de la taille de la salle", "[enemies]") {
+    REQUIRE(DungeonGenerator::EnemyCountFor(Room{0, 0, 5, 5}) == 2);     // plus petite salle
+    REQUIRE(DungeonGenerator::EnemyCountFor(Room{0, 0, 10, 10}) == 5);   // plus grande salle
+    REQUIRE(DungeonGenerator::EnemyCountFor(Room{0, 0, 8, 8}) == 3);     // 64 cases : entre les deux
+    REQUIRE(DungeonGenerator::EnemyCountFor(Room{0, 0, 9, 10}) == 4);
+}
+
+TEST_CASE("Les ennemis sont places dans les salles selon les regles", "[enemies]") {
+    const auto seed = GENERATE(range(0u, 50u));
+    auto generator = DungeonGenerator{seed};
+    const auto dungeon = generator.Generate(60, 45);
+    const auto& spawns = dungeon.enemySpawns;
+    const auto& rooms = dungeon.rooms;
+
+    // Nombre exact : somme des salles, sauf la salle de départ
+    auto expected = 0;
+    for (auto i = std::size_t{1}; i < rooms.size(); ++i) {
+        expected += DungeonGenerator::EnemyCountFor(rooms[i]);
+    }
+    REQUIRE(spawns.size() == static_cast<std::size_t>(expected));
+
+    for (auto i = std::size_t{0}; i < spawns.size(); ++i) {
+        // Sur du sol, jamais dans la salle de départ ni sur la sortie
+        REQUIRE(dungeon.grid.GetTile(spawns[i]) == TileType::Floor);
+        REQUIRE_FALSE(rooms.front().Contains(spawns[i]));
+        REQUIRE_FALSE(spawns[i] == dungeon.stairs);
+        // Jamais deux ennemis sur la même case
+        for (auto j = i + 1; j < spawns.size(); ++j) {
+            REQUIRE_FALSE(spawns[i] == spawns[j]);
+        }
+    }
+}
+
 TEST_CASE("Une meme graine produit le meme donjon", "[dungeon]") {
     auto first = DungeonGenerator{1234};
     auto second = DungeonGenerator{1234};
@@ -212,4 +245,5 @@ TEST_CASE("Une meme graine produit le meme donjon", "[dungeon]") {
     }
     REQUIRE(dungeonA.playerStart == dungeonB.playerStart);
     REQUIRE(dungeonA.stairs == dungeonB.stairs);
+    REQUIRE(dungeonA.enemySpawns == dungeonB.enemySpawns);
 }

@@ -50,6 +50,12 @@ namespace core {
         return speed;
     }
 
+    Enemy::Enemy(const GridPos position) : Entity{position, startHealth, startAttack} {}
+
+    std::string Enemy::GetName() const {
+        return "Voyou";
+    }
+
     bool Player::TryMoveTo(const Grid& grid, const GridPos target) {
         const auto reachable = ReachableTiles(grid, GetPosition(), speed);
         if (std::ranges::find(reachable, target) == reachable.end()) {
