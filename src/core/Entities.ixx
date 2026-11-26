@@ -67,9 +67,10 @@ export namespace core {
         // Renvoie la vitesse de la moto (nombre de cases parcourables en un déplacement)
         int GetSpeed() const noexcept;
 
-        // Se téléporte sur target si elle est atteignable en marchant en au plus GetSpeed() pas.
-        // Renvoie true si le joueur s'est déplacé, false sinon (trop loin, mur, case actuelle).
-        bool TryMoveTo(const Grid& grid, const GridPos target);
+        // Se téléporte sur target si elle est atteignable en marchant en au plus GetSpeed() pas,
+        // sans passer ni s'arrêter sur une case de obstacles (ennemis).
+        // Renvoie true si le joueur s'est déplacé, false sinon (trop loin, mur, ennemi, case actuelle).
+        bool TryMoveTo(const Grid& grid, const GridPos target, const std::vector<GridPos>& obstacles);
 
     private:
         int speed{startSpeed};

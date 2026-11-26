@@ -46,6 +46,18 @@ TEST_CASE("La zone contourne les murs (distance en marchant)", "[pathfinding]") 
     REQUIRE_FALSE(Contains(ReachableTiles(grid, GridPos{0, 0}, 6), GridPos{1, 0}));  // jamais sur un mur
 }
 
+TEST_CASE("Un obstacle ne peut etre ni atteint ni traverse", "[pathfinding]") {
+    // Couloir d'une case de large : (0,0) ... (4,0), obstacle en (2,0)
+    const auto grid = MakeOpenGrid(5, 1);
+    const auto obstacles = std::vector<GridPos>{GridPos{2, 0}};
+    const auto tiles = ReachableTiles(grid, GridPos{0, 0}, 10, obstacles);
+
+    REQUIRE(tiles.size() == 1);                          // seulement (1,0)
+    REQUIRE(Contains(tiles, GridPos{1, 0}));
+    REQUIRE_FALSE(Contains(tiles, GridPos{2, 0}));       // case de l'obstacle
+    REQUIRE_FALSE(Contains(tiles, GridPos{3, 0}));       // derrière l'obstacle
+}
+
 TEST_CASE("Portee nulle ou depart non praticable : zone vide", "[pathfinding]") {
     auto grid = MakeOpenGrid(5, 5);
     grid.SetTile(GridPos{2, 2}, TileType::Wall);

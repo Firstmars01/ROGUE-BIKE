@@ -11,6 +11,8 @@ export namespace core {
 
     // Renvoie les cases praticables atteignables depuis start en au plus range pas
     // (4 directions, murs contournés), sans start lui-même. Vide si range <= 0 ou start non praticable.
-    std::vector<GridPos> ReachableTiles(const Grid& grid, const GridPos start, const int range);
+    // obstacles : cases occupées (ennemis), qu'on ne peut ni atteindre ni traverser.
+    std::vector<GridPos> ReachableTiles(const Grid& grid, const GridPos start, const int range,
+                                        const std::vector<GridPos>& obstacles = {});
 
 }

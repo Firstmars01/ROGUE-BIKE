@@ -6,7 +6,8 @@ module core.pathfinding;
 
 namespace core {
 
-    std::vector<GridPos> ReachableTiles(const Grid& grid, const GridPos start, const int range) {
+    std::vector<GridPos> ReachableTiles(const Grid& grid, const GridPos start, const int range,
+                                        const std::vector<GridPos>& obstacles) {
         auto reachable = std::vector<GridPos>{};
         if (range <= 0 || !grid.IsWalkable(start)) {
             return reachable;
@@ -34,7 +35,8 @@ namespace core {
             }
             for (const auto direction : directions) {
                 const auto next = Neighbour(current, direction);
-                if (grid.IsWalkable(next) && distance[indexOf(next)] < 0) {
+                const auto blocked = std::ranges::find(obstacles, next) != obstacles.end();
+                if (grid.IsWalkable(next) && !blocked && distance[indexOf(next)] < 0) {
                     distance[indexOf(next)] = currentDistance + 1;
                     reachable.push_back(next);
                     toVisit.push(next);

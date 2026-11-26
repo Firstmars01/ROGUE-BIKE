@@ -48,7 +48,7 @@ TEST_CASE("TryMoveTo teleporte le joueur sur une case de sa zone", "[entities]")
     auto player = Player{GridPos{0, 0}};
 
     // 4 pas exactement (vitesse de départ)
-    REQUIRE(player.TryMoveTo(grid, GridPos{4, 0}));
+    REQUIRE(player.TryMoveTo(grid, GridPos{4, 0}, {}));
     REQUIRE(player.GetPosition() == GridPos{4, 0});
 }
 
@@ -56,11 +56,21 @@ TEST_CASE("TryMoveTo refuse une case trop loin, un mur ou la case actuelle", "[e
     const auto grid = MakeTestArea();
     auto player = Player{GridPos{0, 0}};
 
-    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{5, 0}));   // 5 pas : trop loin
-    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{3, 1}));   // mur
-    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{0, 0}));   // case actuelle
-    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{-1, 0}));  // hors de la carte
+    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{5, 0}, {}));   // 5 pas : trop loin
+    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{3, 1}, {}));   // mur
+    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{0, 0}, {}));   // case actuelle
+    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{-1, 0}, {}));  // hors de la carte
     REQUIRE(player.GetPosition() == GridPos{0, 0});
+}
+
+TEST_CASE("TryMoveTo refuse la case d'un ennemi et ne le traverse pas", "[entities]") {
+    const auto grid = MakeTestArea();
+    auto player = Player{GridPos{0, 0}};
+    const auto enemies = std::vector<GridPos>{GridPos{2, 0}};
+
+    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{2, 0}, enemies));  // case de l'ennemi
+    REQUIRE(player.TryMoveTo(grid, GridPos{1, 0}, enemies));        // case libre avant lui
+    REQUIRE(player.GetPosition() == GridPos{1, 0});
 }
 
 TEST_CASE("TakeDamage retire des PV sans descendre sous zero", "[entities]") {

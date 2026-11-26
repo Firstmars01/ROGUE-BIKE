@@ -56,8 +56,8 @@ namespace core {
         return "Voyou";
     }
 
-    bool Player::TryMoveTo(const Grid& grid, const GridPos target) {
-        const auto reachable = ReachableTiles(grid, GetPosition(), speed);
+    bool Player::TryMoveTo(const Grid& grid, const GridPos target, const std::vector<GridPos>& obstacles) {
+        const auto reachable = ReachableTiles(grid, GetPosition(), speed, obstacles);
         if (std::ranges::find(reachable, target) == reachable.end()) {
             return false;
         }

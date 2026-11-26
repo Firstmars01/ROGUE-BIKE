@@ -31,7 +31,7 @@ Le joueur parcourt des quartiers générés procéduralement (places reliées pa
 │   │   ├── Exceptions.ixx / Exceptions.cpp             # core.exceptions : GameException
 │   │   ├── Grid.ixx / Grid.cpp                         # core.grid : GridPos, Direction, TileType, Grid (accès vérifiés)
 │   │   ├── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, rues, départ, sortie
-│   │   ├── Pathfinding.ixx / Pathfinding.cpp           # core.pathfinding : ReachableTiles (parcours en largeur)
+│   │   ├── Pathfinding.ixx / Pathfinding.cpp           # core.pathfinding : ReachableTiles (parcours en largeur, obstacles)
 │   │   └── Entities.ixx / Entities.cpp                 # core.entities : Entity (abstraite), Player (vitesse, TryMoveTo), Enemy
 │   ├── ui/                 # Bibliothèque rogueUi : affichage (seule partie qui utilise raylib)
 │   │   ├── IsoMath.ixx                       # ui.isoMath : projection grille <-> écran constexpr (tuiles 32x16)
@@ -83,8 +83,9 @@ python tools/GenerateSprites.py
 - Le joueur (repère provisoire : cercle bleu) apparaît sur la plaque d'égout.
 - La zone de déplacement du joueur s'affiche en bleu : toutes les cases atteignables en marchant (murs contournés) en au plus `speed` pas, la vitesse de la moto (4 au départ).
 - Clic gauche sur une case bleue : le joueur s'y téléporte. Un clic hors de la zone ne fait rien.
+- Les ennemis sont des obstacles : le joueur ne peut ni s'arrêter sur leur case ni passer à travers (ces cases sont exclues de la zone bleue).
 - La case sous la souris est éclaircie ; un quadrillage fin marque toutes les cases praticables.
-- Ennemis (repère provisoire : points rouges) : de 2 à 5 par salle selon sa surface (5x5 : 2, 10x10 : 5), placés au hasard sur des cases distinctes, jamais dans la salle de départ ni sur la sortie. Ils ne bougent pas et ne combattent pas encore.
+- Ennemis (repère provisoire : points rouges) : de 2 à 5 par salle selon sa surface (5x5 : 2, 10x10 : 5), placés au hasard sur des cases distinctes, jamais dans la salle de départ ni sur la sortie. Ils ne bougent pas et ne combattent pas encore, mais bloquent le passage.
 - `R` : génère le quartier suivant (graine + 1, affichée en haut à gauche) et replace le joueur au départ.
 - `Échap` ou la croix : quitter.
 - Lancer `tests` : Catch2 affiche le résultat des tests (`All tests passed`).

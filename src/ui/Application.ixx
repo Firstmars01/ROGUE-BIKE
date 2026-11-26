@@ -30,6 +30,9 @@ export namespace ui {
         // Recalcule la zone de déplacement du joueur (après chaque déplacement ou nouveau quartier)
         void UpdateReachableTiles();
 
+        // Renvoie les cases occupées par les ennemis (obstacles pour le joueur)
+        std::vector<core::GridPos> EnemyPositions() const;
+
         // Dessine l'étage, le joueur et l'aide
         void Draw() const;
 
