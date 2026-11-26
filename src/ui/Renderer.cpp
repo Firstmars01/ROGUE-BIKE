@@ -82,8 +82,69 @@ namespace ui {
         constexpr float playerRadius{6.0f};
         constexpr float playerElevation{8.0f};
 
+        // Surcouches des cases praticables (semi-transparentes)
+        constexpr Color gridLineColor{255, 255, 255, 40};
+        constexpr Color reachableColor{70, 150, 255, 90};
+        constexpr Color hoveredReachableColor{150, 215, 255, 170};
+        constexpr Color hoveredColor{255, 255, 255, 60};
+
         // Un immeuble (32 px) recouvre 2 rangées de cases derrière lui
         constexpr int buildingRowsCovered{2};
+
+        // Les 4 sommets du losange d'une case
+        struct Diamond {
+            Vector2 top{};
+            Vector2 left{};
+            Vector2 bottom{};
+            Vector2 right{};
+        };
+
+        // Renvoie le losange de la case de centre center
+        Diamond MakeDiamond(const ScreenPos center) {
+            return Diamond{
+                Vector2{center.x, center.y - halfTileHeight},
+                Vector2{center.x - halfTileWidth, center.y},
+                Vector2{center.x, center.y + halfTileHeight},
+                Vector2{center.x + halfTileWidth, center.y}
+            };
+        }
+
+        // Dessine un triangle plein quel que soit l'ordre des sommets
+        // (raylib n'affiche que les triangles donnés dans le sens inverse des aiguilles d'une montre)
+        void FillTriangle(const Vector2 a, const Vector2 b, const Vector2 c, const Color color) {
+            const auto cross = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+            if (cross < 0.0f) {
+                DrawTriangle(a, b, c, color);
+            } else if (cross > 0.0f) {
+                DrawTriangle(a, c, b, color);
+            }
+        }
+
+        // Remplit le losange de la case de centre center
+        void FillTile(const ScreenPos center, const Color color) {
+            const auto diamond = MakeDiamond(center);
+            FillTriangle(diamond.top, diamond.left, diamond.bottom, color);
+            FillTriangle(diamond.top, diamond.bottom, diamond.right, color);
+        }
+
+        // Trace le contour du losange de la case de centre center
+        void OutlineTile(const ScreenPos center, const Color color) {
+            const auto diamond = MakeDiamond(center);
+            DrawLineV(diamond.top, diamond.left, color);
+            DrawLineV(diamond.left, diamond.bottom, color);
+            DrawLineV(diamond.bottom, diamond.right, color);
+            DrawLineV(diamond.right, diamond.top, color);
+        }
+
+        // Dessine les surcouches d'une case praticable : quadrillage, zone de déplacement, survol
+        void DrawTileOverlays(const ScreenPos center, const bool reachable, const bool hovered) {
+            OutlineTile(center, gridLineColor);
+            if (reachable) {
+                FillTile(center, hovered ? hoveredReachableColor : reachableColor);
+            } else if (hovered) {
+                FillTile(center, hoveredColor);
+            }
+        }
 
         // Dessine le repère du joueur sur la case de centre center
         void DrawPlayerMarker(const ScreenPos center) {
@@ -124,7 +185,13 @@ namespace ui {
     // Défini ici : Sprites n'est complet que dans ce fichier
     Renderer::~Renderer() = default;
 
-    void Renderer::DrawDungeon(const core::Dungeon& dungeon, const core::Player& player) const {
+    core::GridPos Renderer::CellAt(const ScreenPos screen) const noexcept {
+        return ScreenToGrid(screen, origin);
+    }
+
+    void Renderer::DrawDungeon(const core::Dungeon& dungeon, const core::Player& player,
+                               const std::vector<core::GridPos>& reachableTiles,
+                               const std::optional<core::GridPos> hoveredTile) const {
         const auto& grid = dungeon.grid;
         const auto width = grid.GetWidth();
         const auto height = grid.GetHeight();
@@ -153,6 +220,11 @@ namespace ui {
                         break;
                     case core::TileType::Empty:
                         break;
+                }
+                // Surcouches juste après la case : les immeubles placés devant les recouvrent
+                if (grid.IsWalkable(pos)) {
+                    const auto reachable = std::ranges::find(reachableTiles, pos) != reachableTiles.end();
+                    DrawTileOverlays(center, reachable, hoveredTile == pos);
                 }
                 // Joueur dessiné juste après sa case : les immeubles devant lui le recouvrent
                 if (pos == player.GetPosition()) {

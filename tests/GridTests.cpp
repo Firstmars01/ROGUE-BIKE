@@ -67,6 +67,14 @@ TEST_CASE("GetTile et SetTile sont securises", "[grid]") {
     }
 }
 
+TEST_CASE("Neighbour renvoie la case voisine dans chaque direction", "[grid]") {
+    const auto pos = GridPos{5, 5};
+    REQUIRE(Neighbour(pos, Direction::Up) == GridPos{5, 4});
+    REQUIRE(Neighbour(pos, Direction::Down) == GridPos{5, 6});
+    REQUIRE(Neighbour(pos, Direction::Left) == GridPos{4, 5});
+    REQUIRE(Neighbour(pos, Direction::Right) == GridPos{6, 5});
+}
+
 TEST_CASE("IsWalkable accepte uniquement le sol et l'escalier", "[grid]") {
     auto grid = Grid{4, 1};
     grid.SetTile(GridPos{0, 0}, TileType::Floor);

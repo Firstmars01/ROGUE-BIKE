@@ -6,6 +6,7 @@ import std;
 module ui.application;
 
 import core.config;
+import core.pathfinding;
 
 namespace ui {
 
@@ -20,30 +21,45 @@ namespace ui {
           seed{core::dungeonSeed},
           dungeon{CreateDungeon(core::dungeonSeed)},
           player{dungeon.playerStart},
-          renderer{core::mapWidth, core::mapHeight, core::windowWidth, core::windowHeight, SpritesDirectory()} {}
+          renderer{core::mapWidth, core::mapHeight, core::windowWidth, core::windowHeight, SpritesDirectory()} {
+        UpdateReachableTiles();
+    }
 
     void Application::Run() {
         while (!window.ShouldClose()) {
             HandleInput();
-            BeginDrawing();
+            window.BeginFrame();
             Draw();
-            EndDrawing();
+            window.EndFrame();
         }
     }
 
     void Application::HandleInput() {
+        // Case sous la souris (coordonnées du canevas), retenue seulement si elle est praticable
+        const auto cell = renderer.CellAt(window.MousePosition());
+        hoveredTile = dungeon.grid.IsWalkable(cell) ? std::optional{cell} : std::nullopt;
+
+        // Clic gauche : téléportation si la case est dans la zone (validée par core)
+        if (hoveredTile && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && player.TryMoveTo(dungeon.grid, *hoveredTile)) {
+            UpdateReachableTiles();
+        }
         if (IsKeyPressed(KEY_R)) {
             ++seed;
             dungeon = CreateDungeon(seed);
             player.SetPosition(dungeon.playerStart);
+            UpdateReachableTiles();
         }
+    }
+
+    void Application::UpdateReachableTiles() {
+        reachableTiles = core::ReachableTiles(dungeon.grid, player.GetPosition(), player.GetSpeed());
     }
 
     void Application::Draw() const {
         ClearBackground(backgroundColor);
-        renderer.DrawDungeon(dungeon, player);
+        renderer.DrawDungeon(dungeon, player, reachableTiles, hoveredTile);
         // Sans accents : la police par défaut de raylib ne les gère pas
-        const auto help = std::format("Graine : {}   |   R : nouveau donjon   |   Echap : quitter", seed);
+        const auto help = std::format("Graine : {}   |   Clic gauche : se deplacer (zone bleue)   |   R : nouveau donjon   |   Echap : quitter", seed);
         DrawText(help.c_str(), helpMargin, helpMargin, helpFontSize, RAYWHITE);
     }
 

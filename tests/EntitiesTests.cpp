@@ -23,6 +23,45 @@ TEST_CASE("SetPosition deplace l'entite", "[entities]") {
     REQUIRE(player.GetPosition() == GridPos{10, 3});
 }
 
+// Couloir horizontal de test : 7 cases de sol, un mur en x = 3 sur une seconde ligne de sol
+//   ligne 0 : . . . . . . .
+//   ligne 1 : . . . # . . .
+static Grid MakeTestArea() {
+    auto grid = Grid{7, 2};
+    for (auto y = 0; y < 2; ++y) {
+        for (auto x = 0; x < 7; ++x) {
+            grid.SetTile(GridPos{x, y}, TileType::Floor);
+        }
+    }
+    grid.SetTile(GridPos{3, 1}, TileType::Wall);
+    return grid;
+}
+
+TEST_CASE("Le joueur demarre avec la vitesse de sa moto", "[entities]") {
+    const auto player = Player{GridPos{0, 0}};
+    REQUIRE(player.GetSpeed() == Player::startSpeed);
+}
+
+TEST_CASE("TryMoveTo teleporte le joueur sur une case de sa zone", "[entities]") {
+    const auto grid = MakeTestArea();
+    auto player = Player{GridPos{0, 0}};
+
+    // 4 pas exactement (vitesse de départ)
+    REQUIRE(player.TryMoveTo(grid, GridPos{4, 0}));
+    REQUIRE(player.GetPosition() == GridPos{4, 0});
+}
+
+TEST_CASE("TryMoveTo refuse une case trop loin, un mur ou la case actuelle", "[entities]") {
+    const auto grid = MakeTestArea();
+    auto player = Player{GridPos{0, 0}};
+
+    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{5, 0}));   // 5 pas : trop loin
+    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{3, 1}));   // mur
+    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{0, 0}));   // case actuelle
+    REQUIRE_FALSE(player.TryMoveTo(grid, GridPos{-1, 0}));  // hors de la carte
+    REQUIRE(player.GetPosition() == GridPos{0, 0});
+}
+
 TEST_CASE("TakeDamage retire des PV sans descendre sous zero", "[entities]") {
     auto player = Player{GridPos{0, 0}};
 

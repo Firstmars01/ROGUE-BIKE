@@ -29,12 +29,13 @@ Le joueur parcourt des quartiers générés procéduralement (places reliées pa
 │   ├── core/               # Bibliothèque rogueCore : logique métier, SANS dépendance graphique
 │   │   ├── Config.ixx                                  # core.config : fenêtre, taille de carte, graine
 │   │   ├── Exceptions.ixx / Exceptions.cpp             # core.exceptions : GameException
-│   │   ├── Grid.ixx / Grid.cpp                         # core.grid : GridPos, TileType, Grid (accès vérifiés)
+│   │   ├── Grid.ixx / Grid.cpp                         # core.grid : GridPos, Direction, TileType, Grid (accès vérifiés)
 │   │   ├── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, rues, départ, sortie
-│   │   └── Entities.ixx / Entities.cpp                 # core.entities : Entity (abstraite), Player
+│   │   ├── Pathfinding.ixx / Pathfinding.cpp           # core.pathfinding : ReachableTiles (parcours en largeur)
+│   │   └── Entities.ixx / Entities.cpp                 # core.entities : Entity (abstraite), Player (vitesse, TryMoveTo)
 │   ├── ui/                 # Bibliothèque rogueUi : affichage (seule partie qui utilise raylib)
-│   │   ├── IsoMath.ixx                       # ui.isoMath : projection grille -> écran constexpr (tuiles 32x16)
-│   │   ├── Window.ixx / Window.cpp           # ui.window : fenêtre raylib en RAII
+│   │   ├── IsoMath.ixx                       # ui.isoMath : projection grille <-> écran constexpr (tuiles 32x16)
+│   │   ├── Window.ixx / Window.cpp           # ui.window : fenêtre RAII + canevas virtuel 1920x1080 (rendu et souris mis à l'échelle)
 │   │   ├── Renderer.ixx / Renderer.cpp       # ui.renderer : sprites pixel art (RAII), ordre du peintre
 │   │   └── Application.ixx / Application.cpp # ui.application : boucle de jeu, clavier
 │   └── main.cpp            # Point d'entrée : crée l'application et la lance
@@ -43,6 +44,7 @@ Le joueur parcourt des quartiers générés procéduralement (places reliées pa
     ├── GridTests.cpp
     ├── DungeonGeneratorTests.cpp
     ├── EntitiesTests.cpp
+    ├── PathfindingTests.cpp
     └── IsoMathTests.cpp
 ```
 
@@ -77,8 +79,11 @@ python tools/GenerateSprites.py
 
 ## Exemples d'utilisation
 
-- Lancer `RogueBike` : le quartier s'affiche en vue isométrique dans une fenêtre 1920x1080, caméra fixe montrant toute la carte.
-- Le joueur (repère provisoire : cercle bleu) apparaît sur la plaque d'égout. Il ne se déplace pas encore.
+- Lancer `RogueBike` : le jeu s'ouvre en plein écran sans bordure. Il est dessiné sur un canevas fixe de 1920x1080, affiché mis à l'échelle et centré si l'écran a une autre taille (la souris est convertie de la même façon). Caméra fixe montrant toute la carte.
+- Le joueur (repère provisoire : cercle bleu) apparaît sur la plaque d'égout.
+- La zone de déplacement du joueur s'affiche en bleu : toutes les cases atteignables en marchant (murs contournés) en au plus `speed` pas, la vitesse de la moto (4 au départ).
+- Clic gauche sur une case bleue : le joueur s'y téléporte. Un clic hors de la zone ne fait rien.
+- La case sous la souris est éclaircie ; un quadrillage fin marque toutes les cases praticables.
 - `R` : génère le quartier suivant (graine + 1, affichée en haut à gauche) et replace le joueur au départ.
 - `Échap` ou la croix : quitter.
 - Lancer `tests` : Catch2 affiche le résultat des tests (`All tests passed`).
@@ -110,7 +115,7 @@ python tools/GenerateSprites.py
 
 - Avertissements traités comme des erreurs (`-Werror`) sur tout le code du projet.
 - Aucune allocation manuelle : gestion mémoire en RAII (`std::unique_ptr`, conteneurs STL).
-- Fenêtre raylib ouverte et fermée par `ui::Window` (RAII, non copiable), créée avant les textures et détruite après elles.
+- Fenêtre raylib et canevas gérés par `ui::Window` (RAII, non copiable) : créés avant les textures, détruits après elles, canevas libéré avant la fermeture du contexte graphique.
 - Les erreurs fatales sont attrapées dans `main` et affichées avec un message court, sans détail interne.
 - Accès à la grille avec vérification des bornes (`std::optional`) pour éviter les dépassements mémoire.
 - Valeurs invalides (dimensions de grille, de carte ou de salle, PV ou attaque ≤ 0, génération impossible) refusées par une exception dédiée `core::GameException`.

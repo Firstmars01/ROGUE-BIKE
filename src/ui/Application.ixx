@@ -5,6 +5,7 @@ import std;
 
 export module ui.application;
 
+import core.grid;
 import core.dungeonGenerator;
 import core.entities;
 import ui.window;
@@ -23,8 +24,11 @@ export namespace ui {
         void Run();
 
     private:
-        // R : nouveau quartier (graine + 1), joueur replacé au départ
+        // Souris : case survolée, clic gauche = déplacement dans la zone ; R : nouveau quartier
         void HandleInput();
+
+        // Recalcule la zone de déplacement du joueur (après chaque déplacement ou nouveau quartier)
+        void UpdateReachableTiles();
 
         // Dessine l'étage, le joueur et l'aide
         void Draw() const;
@@ -41,6 +45,8 @@ export namespace ui {
         core::Dungeon dungeon;
         core::Player player;
         Renderer renderer;
+        std::vector<core::GridPos> reachableTiles;     // Zone de déplacement du joueur
+        std::optional<core::GridPos> hoveredTile;      // Case praticable sous la souris
     };
 
 }

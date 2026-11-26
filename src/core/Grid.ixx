@@ -15,6 +15,17 @@ export namespace core {
         bool operator==(const GridPos&) const = default;
     };
 
+    // Direction d'un déplacement d'une case (axes de la grille)
+    enum class Direction {
+        Up,     // y - 1
+        Down,   // y + 1
+        Left,   // x - 1
+        Right   // x + 1
+    };
+
+    // Renvoie la case voisine de pos dans la direction donnée
+    GridPos Neighbour(const GridPos pos, const Direction direction) noexcept;
+
     // Nature d'une case
     enum class TileType {
         Empty,  // Hors du donjon

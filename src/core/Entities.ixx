@@ -56,12 +56,23 @@ export namespace core {
     public:
         static constexpr int startHealth{30};
         static constexpr int startAttack{5};
+        static constexpr int startSpeed{4};    // Vitesse de la moto = portée de déplacement (cases)
 
         // Crée le joueur sur la case start
         explicit Player(const GridPos start);
 
         // Renvoie "Motard"
         std::string GetName() const override;
+
+        // Renvoie la vitesse de la moto (nombre de cases parcourables en un déplacement)
+        int GetSpeed() const noexcept;
+
+        // Se téléporte sur target si elle est atteignable en marchant en au plus GetSpeed() pas.
+        // Renvoie true si le joueur s'est déplacé, false sinon (trop loin, mur, case actuelle).
+        bool TryMoveTo(const Grid& grid, const GridPos target);
+
+    private:
+        int speed{startSpeed};
     };
 
 }

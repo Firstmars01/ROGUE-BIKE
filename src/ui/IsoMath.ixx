@@ -1,4 +1,4 @@
-// Module ui.isoMath : projection isométrique grille -> écran (fonctions constexpr, sans raylib).
+// Module ui.isoMath : projection isométrique grille <-> écran (fonctions constexpr, sans raylib).
 // Pas de .cpp : les fonctions constexpr doivent être définies dans l'interface.
 module;
 import std;
@@ -27,6 +27,24 @@ export namespace ui {
         return ScreenPos{
             origin.x + static_cast<float>(pos.x - pos.y) * halfTileWidth,
             origin.y + static_cast<float>(pos.x + pos.y) * halfTileHeight
+        };
+    }
+
+    // Renvoie le plus grand entier <= value (std::floor n'est pas constexpr partout)
+    constexpr int FloorToInt(const float value) noexcept {
+        const auto truncated = static_cast<int>(value);
+        return value < static_cast<float>(truncated) ? truncated - 1 : truncated;
+    }
+
+    // Renvoie la case dont le losange contient le point screen (inverse de GridToScreen).
+    // Le résultat peut être hors de la carte.
+    constexpr core::GridPos ScreenToGrid(const ScreenPos screen, const ScreenPos origin) noexcept {
+        // Coordonnées en demi-tuiles : u = x - y et v = x + y, puis arrondi à la case la plus proche
+        const auto u = (screen.x - origin.x) / halfTileWidth;
+        const auto v = (screen.y - origin.y) / halfTileHeight;
+        return core::GridPos{
+            FloorToInt((v + u) / 2.0f + 0.5f),
+            FloorToInt((v - u) / 2.0f + 0.5f)
         };
     }
 

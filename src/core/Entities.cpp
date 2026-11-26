@@ -5,6 +5,7 @@ import std;
 module core.entities;
 
 import core.exceptions;
+import core.pathfinding;
 
 namespace core {
 
@@ -43,6 +44,19 @@ namespace core {
 
     std::string Player::GetName() const {
         return "Motard";
+    }
+
+    int Player::GetSpeed() const noexcept {
+        return speed;
+    }
+
+    bool Player::TryMoveTo(const Grid& grid, const GridPos target) {
+        const auto reachable = ReachableTiles(grid, GetPosition(), speed);
+        if (std::ranges::find(reachable, target) == reachable.end()) {
+            return false;
+        }
+        SetPosition(target);
+        return true;
     }
 
 }

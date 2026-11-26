@@ -9,6 +9,20 @@ import core.exceptions;
 
 namespace core {
 
+    GridPos Neighbour(const GridPos pos, const Direction direction) noexcept {
+        switch (direction) {
+            case Direction::Up:
+                return GridPos{pos.x, pos.y - 1};
+            case Direction::Down:
+                return GridPos{pos.x, pos.y + 1};
+            case Direction::Left:
+                return GridPos{pos.x - 1, pos.y};
+            case Direction::Right:
+                return GridPos{pos.x + 1, pos.y};
+        }
+        return pos;
+    }
+
     Grid::Grid(const int width, const int height)
         : width{ValidateDimension(width)}, height{ValidateDimension(height)} {
         // assign() et non {} : avec {}, le vector prendrait les valeurs comme éléments

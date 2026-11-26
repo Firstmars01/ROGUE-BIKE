@@ -29,8 +29,15 @@ export namespace ui {
 
         // Dessine l'étage et le joueur dans l'ordre du peintre (x + y croissant).
         // Pavés (salles), asphalte (couloirs), immeubles (murs) ou trottoirs (murs devant un couloir),
-        // plaque d'égout (départ), métro (sortie). À appeler entre BeginDrawing() et EndDrawing().
-        void DrawDungeon(const core::Dungeon& dungeon, const core::Player& player) const;
+        // plaque d'égout (départ), métro (sortie), quadrillage sur les cases praticables,
+        // zone de déplacement reachableTiles en bleu et case hoveredTile (sous la souris) éclaircie.
+        // À appeler entre Window::BeginFrame() et Window::EndFrame().
+        void DrawDungeon(const core::Dungeon& dungeon, const core::Player& player,
+                         const std::vector<core::GridPos>& reachableTiles,
+                         const std::optional<core::GridPos> hoveredTile) const;
+
+        // Renvoie la case située sous le point screen (peut être hors de la carte)
+        core::GridPos CellAt(const ScreenPos screen) const noexcept;
 
     private:
         // Textures chargées (définies dans Renderer.cpp)
