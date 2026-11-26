@@ -1,13 +1,17 @@
 // Tests unitaires du module core.dungeonGenerator : méthodes de Room, dimensions, salles, départ, escalier,
 // accessibilité et reproductibilité, vérifiés sur plusieurs graines.
 #include <catch2/catch_all.hpp>
+#include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <queue>
 #include <vector>
 
 import core.grid;
 import core.dungeonGenerator;
 import core.exceptions;
+import core.entities;
+import core.pathfinding;
 
 using namespace core;
 
@@ -212,23 +216,63 @@ TEST_CASE("Les ennemis sont places dans les salles selon les regles", "[enemies]
     const auto& spawns = dungeon.enemySpawns;
     const auto& rooms = dungeon.rooms;
 
-    // Nombre exact : somme des salles, sauf la salle de départ
+    // Nombre exact : somme des salles, sauf la salle de départ et celle du boss
     auto expected = 0;
-    for (auto i = std::size_t{1}; i < rooms.size(); ++i) {
+    for (auto i = std::size_t{1}; i + 1 < rooms.size(); ++i) {
         expected += DungeonGenerator::EnemyCountFor(rooms[i]);
     }
     REQUIRE(spawns.size() == static_cast<std::size_t>(expected));
 
     for (auto i = std::size_t{0}; i < spawns.size(); ++i) {
-        // Sur du sol, jamais dans la salle de départ ni sur la sortie
+        // Sur du sol, jamais dans la salle de départ ni dans celle du boss
         REQUIRE(dungeon.grid.GetTile(spawns[i]) == TileType::Floor);
         REQUIRE_FALSE(rooms.front().Contains(spawns[i]));
-        REQUIRE_FALSE(spawns[i] == dungeon.stairs);
+        REQUIRE_FALSE(rooms.back().Contains(spawns[i]));
         // Jamais deux ennemis sur la même case
         for (auto j = i + 1; j < spawns.size(); ++j) {
             REQUIRE_FALSE(spawns[i] == spawns[j]);
         }
     }
+}
+
+TEST_CASE("La salle du boss est assez grande et contient la sortie", "[boss]") {
+    const auto seed = GENERATE(range(0u, 50u));
+    auto generator = DungeonGenerator{seed};
+    const auto dungeon = generator.Generate(60, 45);
+    const auto& bossRoom = dungeon.rooms.back();
+
+    REQUIRE(bossRoom.GetWidth() >= DungeonGenerator::bossRoomMinSize);
+    REQUIRE(bossRoom.GetHeight() >= DungeonGenerator::bossRoomMinSize);
+    REQUIRE(bossRoom.Contains(dungeon.stairs));
+}
+
+TEST_CASE("Le boss est colle a la sortie, sur du sol, dans sa salle", "[boss]") {
+    const auto seed = GENERATE(range(0u, 50u));
+    auto generator = DungeonGenerator{seed};
+    const auto dungeon = generator.Generate(60, 45);
+    const auto boss = Boss{dungeon.bossPosition};
+    const auto tiles = boss.OccupiedTiles();
+
+    auto touchesStairs = false;
+    for (const auto& tile : tiles) {
+        REQUIRE(dungeon.grid.GetTile(tile) == TileType::Floor);
+        REQUIRE(dungeon.rooms.back().Contains(tile));
+        REQUIRE_FALSE(tile == dungeon.stairs);
+        const auto distance = std::abs(tile.x - dungeon.stairs.x) + std::abs(tile.y - dungeon.stairs.y);
+        touchesStairs = touchesStairs || distance == 1;
+    }
+    REQUIRE(touchesStairs);
+}
+
+TEST_CASE("La sortie reste accessible malgre le boss", "[boss]") {
+    const auto seed = GENERATE(range(0u, 50u));
+    auto generator = DungeonGenerator{seed};
+    const auto dungeon = generator.Generate(60, 45);
+    const auto obstacles = Boss{dungeon.bossPosition}.OccupiedTiles();
+
+    // Portée très grande : toute la carte sauf le boss
+    const auto reachable = ReachableTiles(dungeon.grid, dungeon.playerStart, 10000, obstacles);
+    REQUIRE(std::find(reachable.begin(), reachable.end(), dungeon.stairs) != reachable.end());
 }
 
 TEST_CASE("Une meme graine produit le meme donjon", "[dungeon]") {
@@ -246,4 +290,5 @@ TEST_CASE("Une meme graine produit le meme donjon", "[dungeon]") {
     REQUIRE(dungeonA.playerStart == dungeonB.playerStart);
     REQUIRE(dungeonA.stairs == dungeonB.stairs);
     REQUIRE(dungeonA.enemySpawns == dungeonB.enemySpawns);
+    REQUIRE(dungeonA.bossPosition == dungeonB.bossPosition);
 }

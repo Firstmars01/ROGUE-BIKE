@@ -17,6 +17,7 @@ export namespace ui {
         const core::Dungeon& dungeon;
         const core::Player& player;
         const std::vector<std::unique_ptr<core::Enemy>>& enemies;
+        const core::Boss& boss;
         const std::vector<core::GridPos>& reachableTiles;   // Zone de déplacement du joueur
         std::optional<core::GridPos> hoveredTile;           // Case praticable sous la souris
     };
@@ -39,7 +40,8 @@ export namespace ui {
         // Dessine la scène dans l'ordre du peintre (x + y croissant) : pavés (salles), asphalte (couloirs),
         // immeubles (transparents s'ils cachent une entité ou la case visée) ou trottoirs (murs),
         // plaque d'égout (départ), métro (sortie), quadrillage,
-        // zone de déplacement en bleu, case survolée éclaircie, joueur (point bleu), ennemis (points rouges).
+        // zone de déplacement en bleu, case survolée éclaircie, joueur (point bleu), ennemis (points rouges),
+        // boss (gros point rouge foncé centré sur ses 2x2 cases).
         // À appeler entre Window::BeginFrame() et Window::EndFrame().
         void DrawScene(const SceneView& scene) const;
 

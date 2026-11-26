@@ -82,7 +82,11 @@ namespace ui {
         constexpr Color playerOutlineColor{20, 40, 80, 255};
         constexpr Color enemyColor{220, 50, 50, 255};
         constexpr Color enemyOutlineColor{90, 15, 15, 255};
+        constexpr Color bossColor{110, 15, 20, 255};
+        constexpr Color bossOutlineColor{50, 5, 8, 255};
         constexpr float markerRadius{6.0f};
+        constexpr float bossRadius{14.0f};
+        constexpr float bossElevation{14.0f};
         constexpr float markerElevation{8.0f};
 
         // Surcouches des cases praticables (semi-transparentes)
@@ -142,6 +146,17 @@ namespace ui {
             DrawLineV(diamond.right, diamond.top, color);
         }
 
+        // Dessine le boss : un gros point centré sur son carré de cases (topLeft = case en haut à gauche)
+        void DrawBoss(const core::GridPos topLeft, const ScreenPos origin) {
+            // Centre du carré = milieu entre les centres de la première et de la dernière case
+            const auto last = core::Boss::size - 1;
+            const auto first = GridToScreen(topLeft, origin);
+            const auto opposite = GridToScreen(core::GridPos{topLeft.x + last, topLeft.y + last}, origin);
+            const auto position = Vector2{(first.x + opposite.x) / 2.0f, (first.y + opposite.y) / 2.0f - bossElevation};
+            DrawCircleV(position, bossRadius, bossColor);
+            DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), bossRadius, bossOutlineColor);
+        }
+
         // Dessine les surcouches d'une case praticable : quadrillage, zone de déplacement, survol
         void DrawTileOverlays(const ScreenPos center, const bool reachable, const bool hovered) {
             OutlineTile(center, gridLineColor);
@@ -189,9 +204,13 @@ namespace ui {
             return false;
         }
 
-        // Indique si un immeuble en pos cache le joueur, un ennemi ou la case sous la souris
+        // Indique si un immeuble en pos cache le joueur, un ennemi, le boss ou la case sous la souris
         bool HidesImportantTile(const SceneView& scene, const core::GridPos pos) {
             if (Covers(pos, scene.player.GetPosition()) || (scene.hoveredTile && Covers(pos, *scene.hoveredTile))) {
+                return true;
+            }
+            const auto bossTiles = scene.boss.OccupiedTiles();
+            if (std::ranges::any_of(bossTiles, [pos](const core::GridPos tile) { return Covers(pos, tile); })) {
                 return true;
             }
             return std::ranges::any_of(scene.enemies, [pos](const auto& enemy) {
@@ -262,6 +281,11 @@ namespace ui {
                 });
                 if (hasEnemy) {
                     DrawMarker(center, enemyColor, enemyOutlineColor);
+                }
+                // Boss dessiné après la dernière de ses cases (la plus proche de la caméra)
+                const auto bossLast = core::Boss::size - 1;
+                if (pos == core::GridPos{scene.boss.GetPosition().x + bossLast, scene.boss.GetPosition().y + bossLast}) {
+                    DrawBoss(scene.boss.GetPosition(), origin);
                 }
             }
         }

@@ -1,4 +1,4 @@
-// Module core.entities (interface) : classe abstraite Entity, joueur et ennemis.
+// Module core.entities (interface) : classe abstraite Entity, joueur, ennemis et boss.
 // Implémentation : Entities.cpp
 module;
 import std;
@@ -87,6 +87,27 @@ export namespace core {
 
         // Renvoie "Voyou"
         std::string GetName() const override;
+    };
+
+    // Boss : garde la bouche de métro, occupe un carré de size x size cases.
+    // Sa position (GetPosition) est la case en haut à gauche du carré.
+    class Boss final : public Entity {
+    public:
+        static constexpr int size{2};
+        static constexpr int startHealth{50};
+        static constexpr int startAttack{8};
+
+        // Crée le boss avec topLeft comme case en haut à gauche
+        explicit Boss(const GridPos topLeft);
+
+        // Renvoie "Chef de gang"
+        std::string GetName() const override;
+
+        // Indique si pos fait partie du carré occupé par le boss
+        bool Occupies(const GridPos pos) const noexcept;
+
+        // Renvoie les size x size cases occupées
+        std::vector<GridPos> OccupiedTiles() const;
     };
 
 }

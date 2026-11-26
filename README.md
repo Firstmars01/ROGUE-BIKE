@@ -32,7 +32,7 @@ Le joueur parcourt des quartiers générés procéduralement (places reliées pa
 │   │   ├── Grid.ixx / Grid.cpp                         # core.grid : GridPos, Direction, TileType, Grid (accès vérifiés)
 │   │   ├── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : salles, rues, départ, sortie
 │   │   ├── Pathfinding.ixx / Pathfinding.cpp           # core.pathfinding : ReachableTiles (parcours en largeur, obstacles)
-│   │   └── Entities.ixx / Entities.cpp                 # core.entities : Entity (abstraite), Player (vitesse, TryMoveTo), Enemy
+│   │   └── Entities.ixx / Entities.cpp                 # core.entities : Entity (abstraite), Player (vitesse, TryMoveTo), Enemy, Boss (2x2)
 │   ├── ui/                 # Bibliothèque rogueUi : affichage (seule partie qui utilise raylib)
 │   │   ├── IsoMath.ixx                       # ui.isoMath : projection grille <-> écran constexpr (tuiles 32x16)
 │   │   ├── Window.ixx / Window.cpp           # ui.window : fenêtre RAII + canevas virtuel 1920x1080 (rendu et souris mis à l'échelle)
@@ -83,22 +83,23 @@ python tools/GenerateSprites.py
 - Le joueur (repère provisoire : cercle bleu) apparaît sur la plaque d'égout.
 - La zone de déplacement du joueur s'affiche en bleu : toutes les cases atteignables en marchant (murs contournés) en au plus `speed` pas, la vitesse de la moto (4 au départ).
 - Clic gauche sur une case bleue : le joueur s'y téléporte. Un clic hors de la zone ne fait rien.
-- Les ennemis sont des obstacles : le joueur ne peut ni s'arrêter sur leur case ni passer à travers (ces cases sont exclues de la zone bleue).
+- Boss (repère provisoire : gros point rouge foncé) : un « Chef de gang » qui occupe un carré de 2x2 cases, collé à la bouche de métro du côté d'où arrive le couloir. Il est seul dans sa salle, qui mesure au moins 8x8.
+- Les ennemis et le boss sont des obstacles : le joueur ne peut ni s'arrêter sur leurs cases ni passer à travers (ces cases sont exclues de la zone bleue). La sortie reste toujours accessible en contournant le boss.
 - La case sous la souris est éclaircie ; un quadrillage fin marque toutes les cases praticables.
-- Ennemis (repère provisoire : points rouges) : de 2 à 5 par salle selon sa surface (5x5 : 2, 10x10 : 5), placés au hasard sur des cases distinctes, jamais dans la salle de départ ni sur la sortie. Ils ne bougent pas et ne combattent pas encore, mais bloquent le passage.
+- Ennemis (repère provisoire : points rouges) : de 2 à 5 par salle selon sa surface (5x5 : 2, 10x10 : 5), placés au hasard sur des cases distinctes, jamais dans la salle de départ ni dans celle du boss. Ils ne bougent pas et ne combattent pas encore, mais bloquent le passage.
 - `R` : génère le quartier suivant (graine + 1, affichée en haut à gauche) et replace le joueur au départ.
 - `Échap` ou la croix : quitter.
 - Lancer `tests` : Catch2 affiche le résultat des tests (`All tests passed`).
 
 ### Génération et rendu
 
-- Carte de 60x45 cases, 7 à 9 salles de 5x5 à 10x10, reliées par des couloirs en L.
+- Carte de 60x45 cases, 7 à 9 salles de 5x5 à 10x10 (salle du boss : au moins 8x8), reliées par des couloirs en L.
 - Thème urbain :
   - places pavées (salles) et rues en asphalte (couloirs) ;
   - immeubles de 2 étages en 3 variantes (brique, béton, crépi) pour les murs ;
   - trottoirs gris à la place des immeubles qui cacheraient une rue ;
   - plaque d'égout sur la case de départ, bouche de métro sur la sortie.
-- Un immeuble qui cache le joueur, un ennemi ou la case sous la souris devient à moitié transparent.
+- Un immeuble qui cache le joueur, un ennemi, le boss ou la case sous la souris devient à moitié transparent.
 - Les murs font toujours une seule case d'épaisseur.
 - Le quartier de démo est toujours le même (graine fixe `dungeonSeed` dans `core.config`).
 

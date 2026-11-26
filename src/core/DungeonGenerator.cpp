@@ -79,9 +79,22 @@ namespace core {
             AddWallsAroundFloors(grid);
         }
 
+        // Boss devant la sortie, du côté de la salle précédente
+        const auto bossPosition = BossPositionFor(stairs, rooms[rooms.size() - 2].Center());
+
         // Ennemis placés en dernier : la forme de l'étage ne dépend pas de leur tirage
-        auto enemySpawns = PlaceEnemies(rooms, stairs);
-        return Dungeon{std::move(grid), rooms, playerStart, stairs, std::move(enemySpawns)};
+        auto enemySpawns = PlaceEnemies(rooms);
+        return Dungeon{std::move(grid), rooms, playerStart, stairs, bossPosition, std::move(enemySpawns)};
+    }
+
+    GridPos DungeonGenerator::BossPositionFor(const GridPos stairs, const GridPos comingFrom) noexcept {
+        const auto dx = comingFrom.x - stairs.x;
+        const auto dy = comingFrom.y - stairs.y;
+        // Côté dominant : le carré du boss est collé à la sortie sur ce côté
+        if (std::abs(dx) >= std::abs(dy)) {
+            return dx >= 0 ? GridPos{stairs.x + 1, stairs.y} : GridPos{stairs.x - Boss::size, stairs.y};
+        }
+        return dy >= 0 ? GridPos{stairs.x, stairs.y + 1} : GridPos{stairs.x, stairs.y - Boss::size};
     }
 
     int DungeonGenerator::EnemyCountFor(const Room& room) noexcept {
@@ -91,18 +104,16 @@ namespace core {
         return minEnemiesPerRoom + (area - minArea) * (maxEnemiesPerRoom - minEnemiesPerRoom) / (maxArea - minArea);
     }
 
-    std::vector<GridPos> DungeonGenerator::PlaceEnemies(const std::vector<Room>& rooms, const GridPos excluded) {
+    std::vector<GridPos> DungeonGenerator::PlaceEnemies(const std::vector<Room>& rooms) {
         auto spawns = std::vector<GridPos>{};
-        // rooms.front() est la salle de départ : on commence à la deuxième
-        for (auto index = std::size_t{1}; index < rooms.size(); ++index) {
+        // Ni la salle de départ (première) ni la salle du boss (dernière)
+        for (auto index = std::size_t{1}; index + 1 < rooms.size(); ++index) {
             const auto& room = rooms[index];
             // Toutes les cases libres de la salle, mélangées, puis on garde les premières
             auto candidates = std::vector<GridPos>{};
             for (auto y = room.GetY(); y < room.GetY() + room.GetHeight(); ++y) {
                 for (auto x = room.GetX(); x < room.GetX() + room.GetWidth(); ++x) {
-                    if (GridPos{x, y} != excluded) {
-                        candidates.push_back(GridPos{x, y});
-                    }
+                    candidates.push_back(GridPos{x, y});
                 }
             }
             std::ranges::shuffle(candidates, random);
@@ -118,11 +129,12 @@ namespace core {
 
     std::vector<Room> DungeonGenerator::PlaceRooms(const int width, const int height) {
         const auto targetCount = RandomInt(minRoomCount, maxRoomCount);
-        auto rooms = std::vector<Room>{};
+        // La salle du boss est placée en premier, sur la carte vide : elle trouve toujours sa place
+        auto rooms = std::vector<Room>{RandomRoom(width, height, bossRoomMinSize)};
 
         for (auto attempt = 0; attempt < maxPlacementAttempts
                                && std::cmp_less(rooms.size(), targetCount); ++attempt) {
-            const auto candidate = RandomRoom(width, height);
+            const auto candidate = RandomRoom(width, height, minRoomSize);
             const auto overlaps = std::ranges::any_of(rooms, [&candidate](const Room& room) {
                 return candidate.Intersects(room, roomGap);
             });
@@ -130,12 +142,14 @@ namespace core {
                 rooms.push_back(candidate);
             }
         }
+        // La salle du boss passe en dernier : c'est la salle de la sortie
+        std::ranges::rotate(rooms, rooms.begin() + 1);
         return rooms;
     }
 
-    Room DungeonGenerator::RandomRoom(const int width, const int height) {
-        const auto roomWidth = RandomInt(minRoomSize, maxRoomSize);
-        const auto roomHeight = RandomInt(minRoomSize, maxRoomSize);
+    Room DungeonGenerator::RandomRoom(const int width, const int height, const int minSize) {
+        const auto roomWidth = RandomInt(minSize, maxRoomSize);
+        const auto roomHeight = RandomInt(minSize, maxRoomSize);
         return Room{
             RandomInt(1, width - roomWidth - 1),
             RandomInt(1, height - roomHeight - 1),

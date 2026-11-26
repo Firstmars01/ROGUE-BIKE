@@ -102,14 +102,28 @@ TEST_CASE("Un ennemi demarre sur sa case avec ses statistiques", "[entities]") {
     REQUIRE(enemy.GetName() == "Voyou");
 }
 
+TEST_CASE("Le boss occupe un carre de 2x2 cases", "[entities]") {
+    const auto boss = Boss{GridPos{4, 6}};
+
+    REQUIRE(boss.GetName() == "Chef de gang");
+    REQUIRE(boss.GetHealth() == Boss::startHealth);
+    REQUIRE(boss.GetAttack() == Boss::startAttack);
+    REQUIRE(boss.OccupiedTiles() == std::vector<GridPos>{GridPos{4, 6}, GridPos{5, 6}, GridPos{4, 7}, GridPos{5, 7}});
+    REQUIRE(boss.Occupies(GridPos{5, 7}));
+    REQUIRE_FALSE(boss.Occupies(GridPos{6, 7}));
+    REQUIRE_FALSE(boss.Occupies(GridPos{4, 5}));
+}
+
 TEST_CASE("Joueur et ennemis se manipulent ensemble via Entity (polymorphisme)", "[entities]") {
     auto entities = std::vector<std::unique_ptr<Entity>>{};
     entities.push_back(std::make_unique<Player>(GridPos{0, 0}));
     entities.push_back(std::make_unique<Enemy>(GridPos{1, 0}));
+    entities.push_back(std::make_unique<Boss>(GridPos{2, 0}));
 
     // Appels virtuels : chaque classe dérivée répond avec son propre nom
     REQUIRE(entities[0]->GetName() == "Motard");
     REQUIRE(entities[1]->GetName() == "Voyou");
+    REQUIRE(entities[2]->GetName() == "Chef de gang");
 }
 
 TEST_CASE("Le joueur s'utilise via un pointeur sur Entity (polymorphisme)", "[entities]") {

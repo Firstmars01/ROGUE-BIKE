@@ -13,7 +13,7 @@ import ui.renderer;
 
 export namespace ui {
 
-    // Application : fenêtre, étage, joueur, ennemis et renderer (libérés automatiquement, non copiable)
+    // Application : fenêtre, étage, joueur, ennemis, boss et renderer (libérés automatiquement, non copiable)
     class Application {
     public:
         // Ouvre la fenêtre, génère le quartier de démo et charge les sprites.
@@ -30,8 +30,8 @@ export namespace ui {
         // Recalcule la zone de déplacement du joueur (après chaque déplacement ou nouveau quartier)
         void UpdateReachableTiles();
 
-        // Renvoie les cases occupées par les ennemis (obstacles pour le joueur)
-        std::vector<core::GridPos> EnemyPositions() const;
+        // Renvoie les cases occupées par les ennemis et le boss (obstacles pour le joueur)
+        std::vector<core::GridPos> ObstacleTiles() const;
 
         // Dessine l'étage, le joueur et l'aide
         void Draw() const;
@@ -51,6 +51,7 @@ export namespace ui {
         core::Dungeon dungeon;
         core::Player player;
         std::vector<std::unique_ptr<core::Enemy>> enemies;   // Seul propriétaire des ennemis
+        core::Boss boss;                                     // Boss devant la sortie
         Renderer renderer;
         std::vector<core::GridPos> reachableTiles;     // Zone de déplacement du joueur
         std::optional<core::GridPos> hoveredTile;      // Case praticable sous la souris

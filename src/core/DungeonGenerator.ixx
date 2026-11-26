@@ -7,6 +7,7 @@ import std;
 export module core.dungeonGenerator;
 
 import core.grid;
+import core.entities;
 
 export namespace core {
 
@@ -49,8 +50,9 @@ export namespace core {
         Grid grid;                // Carte
         std::vector<Room> rooms;  // Salles, dans l'ordre où elles sont reliées
         GridPos playerStart;      // Départ (centre de la première salle)
-        GridPos stairs;           // Sortie (centre de la dernière salle)
-        std::vector<GridPos> enemySpawns;  // Cases de départ des ennemis (hors salle de départ)
+        GridPos stairs;           // Sortie (centre de la dernière salle, la salle du boss)
+        GridPos bossPosition;     // Case en haut à gauche du boss, devant la sortie
+        std::vector<GridPos> enemySpawns;  // Ennemis (ni dans la salle de départ, ni dans celle du boss)
     };
 
     // Générateur procédural basé sur std::mt19937
@@ -66,9 +68,14 @@ export namespace core {
         static constexpr int minMapSize{maxRoomSize + 2};  // Carte minimale (une salle + ses murs)
         static constexpr int minEnemiesPerRoom{2};          // Ennemis dans la plus petite salle
         static constexpr int maxEnemiesPerRoom{5};          // Ennemis dans la plus grande salle
+        static constexpr int bossRoomMinSize{8};            // Côté minimal de la salle du boss
 
         // seed : graine du générateur aléatoire
         explicit DungeonGenerator(const std::uint32_t seed);
+
+        // Renvoie la case en haut à gauche du boss : collé à la sortie stairs, du côté de comingFrom
+        // (le centre de la salle précédente, d'où arrive le couloir)
+        static GridPos BossPositionFor(const GridPos stairs, const GridPos comingFrom) noexcept;
 
         // Renvoie le nombre d'ennemis d'une salle : de minEnemiesPerRoom (5x5)
         // à maxEnemiesPerRoom (10x10), proportionnel à sa surface
@@ -82,11 +89,13 @@ export namespace core {
         // Renvoie un entier aléatoire dans [min, max]
         int RandomInt(const int min, const int max);
 
-        // Place entre minRoomCount et maxRoomCount salles sans chevauchement
+        // Place entre minRoomCount et maxRoomCount salles sans chevauchement.
+        // La dernière (salle du boss) mesure au moins bossRoomMinSize de côté.
         std::vector<Room> PlaceRooms(const int width, const int height);
 
-        // Renvoie une salle aléatoire dans la carte, en laissant une bordure pour les murs
-        Room RandomRoom(const int width, const int height);
+        // Renvoie une salle aléatoire dans la carte (côtés de minSize à maxRoomSize),
+        // en laissant une bordure pour les murs
+        Room RandomRoom(const int width, const int height, const int minSize);
 
         // Transforme la salle en sol
         static void CarveRoom(Grid& grid, const Room& room);
@@ -111,8 +120,8 @@ export namespace core {
         static bool IsInAnyRoom(const std::vector<Room>& rooms, const GridPos pos);
 
         // Choisit au hasard les cases des ennemis : EnemyCountFor(salle) cases distinctes par salle,
-        // sauf la salle de départ, jamais sur excluded (la sortie)
-        std::vector<GridPos> PlaceEnemies(const std::vector<Room>& rooms, const GridPos excluded);
+        // sauf la première (départ) et la dernière (boss)
+        std::vector<GridPos> PlaceEnemies(const std::vector<Room>& rooms);
 
         // Indique si une des 8 cases voisines de pos est praticable
         static bool HasWalkableNeighbour(const Grid& grid, const GridPos pos);

@@ -22,6 +22,7 @@ namespace ui {
           dungeon{CreateDungeon(core::dungeonSeed)},
           player{dungeon.playerStart},
           enemies{CreateEnemies(dungeon)},
+          boss{dungeon.bossPosition},
           renderer{core::mapWidth, core::mapHeight, core::windowWidth, core::windowHeight, SpritesDirectory()} {
         UpdateReachableTiles();
     }
@@ -41,7 +42,7 @@ namespace ui {
         hoveredTile = dungeon.grid.IsWalkable(cell) ? std::optional{cell} : std::nullopt;
 
         // Clic gauche : téléportation si la case est dans la zone (validée par core)
-        if (hoveredTile && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && player.TryMoveTo(dungeon.grid, *hoveredTile, EnemyPositions())) {
+        if (hoveredTile && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && player.TryMoveTo(dungeon.grid, *hoveredTile, ObstacleTiles())) {
             UpdateReachableTiles();
         }
         if (IsKeyPressed(KEY_R)) {
@@ -49,16 +50,17 @@ namespace ui {
             dungeon = CreateDungeon(seed);
             player.SetPosition(dungeon.playerStart);
             enemies = CreateEnemies(dungeon);
+            boss.SetPosition(dungeon.bossPosition);
             UpdateReachableTiles();
         }
     }
 
     void Application::UpdateReachableTiles() {
-        reachableTiles = core::ReachableTiles(dungeon.grid, player.GetPosition(), player.GetSpeed(), EnemyPositions());
+        reachableTiles = core::ReachableTiles(dungeon.grid, player.GetPosition(), player.GetSpeed(), ObstacleTiles());
     }
 
-    std::vector<core::GridPos> Application::EnemyPositions() const {
-        auto positions = std::vector<core::GridPos>{};
+    std::vector<core::GridPos> Application::ObstacleTiles() const {
+        auto positions = boss.OccupiedTiles();
         for (const auto& enemy : enemies) {
             positions.push_back(enemy->GetPosition());
         }
@@ -67,7 +69,7 @@ namespace ui {
 
     void Application::Draw() const {
         ClearBackground(backgroundColor);
-        renderer.DrawScene(SceneView{dungeon, player, enemies, reachableTiles, hoveredTile});
+        renderer.DrawScene(SceneView{dungeon, player, enemies, boss, reachableTiles, hoveredTile});
         // Sans accents : la police par défaut de raylib ne les gère pas
         const auto help = std::format("Graine : {}   |   Clic gauche : se deplacer (zone bleue)   |   R : nouveau donjon   |   Echap : quitter", seed);
         DrawText(help.c_str(), helpMargin, helpMargin, helpFontSize, RAYWHITE);

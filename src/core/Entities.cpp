@@ -56,6 +56,28 @@ namespace core {
         return "Voyou";
     }
 
+    Boss::Boss(const GridPos topLeft) : Entity{topLeft, startHealth, startAttack} {}
+
+    std::string Boss::GetName() const {
+        return "Chef de gang";
+    }
+
+    bool Boss::Occupies(const GridPos pos) const noexcept {
+        const auto topLeft = GetPosition();
+        return pos.x >= topLeft.x && pos.x < topLeft.x + size && pos.y >= topLeft.y && pos.y < topLeft.y + size;
+    }
+
+    std::vector<GridPos> Boss::OccupiedTiles() const {
+        const auto topLeft = GetPosition();
+        auto tiles = std::vector<GridPos>{};
+        for (auto dy = 0; dy < size; ++dy) {
+            for (auto dx = 0; dx < size; ++dx) {
+                tiles.push_back(GridPos{topLeft.x + dx, topLeft.y + dy});
+            }
+        }
+        return tiles;
+    }
+
     bool Player::TryMoveTo(const Grid& grid, const GridPos target, const std::vector<GridPos>& obstacles) {
         const auto reachable = ReachableTiles(grid, GetPosition(), speed, obstacles);
         if (std::ranges::find(reachable, target) == reachable.end()) {
