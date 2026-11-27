@@ -1,12 +1,13 @@
 # Générateur des sprites pixel art isométriques de Rogue Bike (tuiles 32x16).
 # Produit des PNG transparents dans assets/sprites/ : sol (asphalte, pavés), trottoir,
-# plaque d'égout (départ), bouche de métro (arrivée) et 3 variantes d'immeubles. Usage : python tools/GenerateSprites.py
+# plaque d'égout (départ), bouche de métro (arrivée), 3 variantes d'immeubles et les personnages
+# (motard, voyou en trottinette, voyou en rollers, boss cycliste). Usage : python tools/GenerateSprites.py
 # Dépendance : Pillow (pip install pillow). Les PNG générés sont versionnés : ce script
 # ne sert qu'à les régénérer ou les modifier.
 import random
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 TILE_WIDTH = 32          # Largeur d'une tuile en pixels
 TILE_HEIGHT = 16         # Hauteur d'une tuile en pixels
@@ -202,6 +203,148 @@ def make_metro():
     image.save(OUTPUT_DIR / "metro.png")
 
 
+# ----- Personnages (vus de profil, tournés vers la droite) -----
+
+# Palette commune des personnages
+CHARACTER_COLORS = {
+    "k": (18, 18, 22),       # contour
+    "f": (226, 180, 140),    # peau
+    "e": (40, 30, 30),       # yeux
+    "v": (50, 80, 120),      # visière
+    "V": (170, 210, 240),    # reflet de visière
+    "p": (52, 62, 96),       # jean
+    "g": (30, 28, 30),       # gants, chaussures
+    "m": (140, 140, 150),    # métal
+    "w": (35, 35, 40),       # roues
+    "W": (200, 200, 60),     # roues de rollers
+}
+
+# Motard à pied : casque intégral rouge, blouson noir
+PLAYER = [
+    "......kkkkk.....",
+    ".....khhhhhk....",
+    "....khhhhhhVk...",
+    "....khhhhvvvk...",
+    "....kHhhhvvvk...",
+    "....kHHhhhhHk...",
+    ".....kkHHHHk....",
+    "....kjjjjjjjk...",
+    "...kjjjjjjjjjk..",
+    "...kjJjjjjjJjk..",
+    "...kjJjjjjjJjk..",
+    "...kgJjjjjjJgk..",
+    "....kJjjjjjJk...",
+    ".....kpppppk....",
+    ".....kpppppk....",
+    ".....kpp.ppk....",
+    ".....kpp.ppk....",
+    ".....kpp.ppk....",
+    "....kggg.gggk...",
+    "....kkkk.kkkk...",
+]
+PLAYER_COLORS = {"h": (210, 40, 40), "H": (140, 20, 25), "j": (34, 34, 40), "J": (18, 18, 22)}
+
+# Voyou rapide : sweat à capuche vert, trottinette
+FAST_ENEMY = [
+    ".....kkkkk..........",
+    "....kcccccck........",
+    "....kccfffck........",
+    "....kcffeffk........",
+    "....kcfffffk...kkk..",
+    ".....kccccck..kmmmk.",
+    "....kcccccccckkkmk..",
+    "...kcCcccccccffkmk..",
+    "...kcCcccccCk.kkmk..",
+    "....kCcccccCk...kmk.",
+    ".....kpppppk....kmk.",
+    ".....kpp.ppk....kmk.",
+    ".....kpp.ppk....kmk.",
+    ".....kpp.ppk....kmk.",
+    "....kggg.gggk...kmk.",
+    "..kmmmmmmmmmmmmmmmk.",
+    ".kwwk..........kwwk.",
+    "..kk............kk..",
+]
+FAST_COLORS = {"c": (60, 150, 80), "C": (35, 100, 55)}
+
+# Voyou costaud : bonnet, blouson large bordeaux, rollers
+HEAVY_ENEMY = [
+    "......kkkkkk......",
+    ".....kbbbbbbk.....",
+    ".....kbBbbBbk.....",
+    ".....kffffffk.....",
+    ".....kffeffek.....",
+    ".....kffffffk.....",
+    "....kkjjjjjjkk....",
+    "..kkjjjjjjjjjjkk..",
+    ".kjjjjjjjjjjjjjjk.",
+    ".kjjJjjjjjjjjJjjk.",
+    ".kjjJjjjjjjjjJjjk.",
+    ".kffJjjjjjjjjJffk.",
+    "..kkJjjjjjjjjJkk..",
+    "....kppppppppk....",
+    "....kppp..pppk....",
+    "....kppp..pppk....",
+    "....kppp..pppk....",
+    "...kgggg..ggggk...",
+    "...kmmmm..mmmmk...",
+    "...kWkWk..kWkWk...",
+]
+HEAVY_COLORS = {"b": (40, 40, 48), "B": (200, 60, 60), "j": (120, 30, 40), "J": (80, 18, 26)}
+
+SHADOW_COLOR = (0, 0, 0, 90)
+
+
+def make_character(name, grid, colors):
+    """Personnage dessiné à partir d'une grille de caractères, avec une ombre ovale sous les pieds."""
+    width = max(len(row) for row in grid)
+    image = Image.new("RGBA", (width, len(grid) + 2), (0, 0, 0, 0))
+    ImageDraw.Draw(image).ellipse((1, len(grid) - 2, width - 2, len(grid) + 1), fill=SHADOW_COLOR)
+    palette = {**CHARACTER_COLORS, **colors}
+    for y, row in enumerate(grid):
+        for x, color in enumerate(row):
+            if color != ".":
+                image.putpixel((x, y), palette[color] + (255,))
+    image.save(OUTPUT_DIR / name)
+
+
+def make_boss():
+    """Boss : cycliste en maillot jaune et casque, sur un vélo de course (couvre 2x2 cases)."""
+    width, height = 60, 46
+    image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    outline = CHARACTER_COLORS["k"] + (255,)
+    frame_color = (30, 110, 200, 255)
+    jersey, jersey_dark = (240, 200, 40, 255), (190, 150, 20, 255)
+    skin = CHARACTER_COLORS["f"] + (255,)
+    rear, front, pedal = (14, 34), (46, 34), (28, 34)
+    seat, handle = (23, 20), (41, 18)
+
+    draw.ellipse((4, 40, width - 5, 45), fill=SHADOW_COLOR)
+    # Roues : pneu épais, jante, moyeu
+    for cx, cy in (rear, front):
+        draw.ellipse((cx - 10, cy - 10, cx + 10, cy + 10), outline=outline, width=3)
+        draw.ellipse((cx - 7, cy - 7, cx + 7, cy + 7), outline=CHARACTER_COLORS["m"] + (255,), width=1)
+        draw.line((cx - 6, cy, cx + 6, cy), fill=CHARACTER_COLORS["m"] + (255,))
+        draw.line((cx, cy - 6, cx, cy + 6), fill=CHARACTER_COLORS["m"] + (255,))
+        draw.rectangle((cx - 1, cy - 1, cx + 1, cy + 1), fill=outline)
+    # Cadre
+    for start, end in ((rear, pedal), (pedal, seat), (seat, rear), (pedal, handle), (seat, handle), (handle, front)):
+        draw.line((*start, *end), fill=frame_color, width=2)
+    draw.line((19, 19, 27, 19), fill=outline, width=2)          # selle
+    draw.line((40, 16, 45, 17), fill=outline, width=2)          # guidon
+    # Cycliste penché : jambe, buste, bras, tête casquée
+    draw.line((24, 20, 31, 28), fill=(30, 30, 36, 255), width=4)   # cuisse (cuissard noir)
+    draw.line((31, 28, 28, 35), fill=skin, width=3)                # mollet
+    draw.rectangle((26, 35, 31, 36), fill=outline)                 # chaussure
+    draw.polygon([(20, 18), (26, 9), (36, 10), (30, 21)], fill=jersey, outline=outline)
+    draw.line((27, 15, 33, 12), fill=jersey_dark, width=2)         # bande du maillot
+    draw.line((34, 12, 41, 17), fill=skin, width=3)                # bras
+    draw.ellipse((33, 2, 43, 11), fill=jersey, outline=outline)    # casque
+    draw.line((40, 6, 44, 7), fill=CHARACTER_COLORS["v"] + (255,), width=2)   # lunettes
+    image.save(OUTPUT_DIR / "boss.png")
+
+
 def main():
     """Génère tous les sprites."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -210,6 +353,10 @@ def main():
     make_sidewalk()
     make_manhole()
     make_metro()
+    make_character("player.png", PLAYER, PLAYER_COLORS)
+    make_character("enemy_fast.png", FAST_ENEMY, FAST_COLORS)
+    make_character("enemy_heavy.png", HEAVY_ENEMY, HEAVY_COLORS)
+    make_boss()
     make_building("building_brick.png", (150, 72, 56), "brick", 11)
     make_building("building_concrete.png", (142, 142, 138), "concrete", 12)
     make_building("building_stucco.png", (204, 182, 140), "stucco", 13)

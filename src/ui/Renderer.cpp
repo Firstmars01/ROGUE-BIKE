@@ -37,6 +37,22 @@ namespace ui {
             DrawTextureV(texture, position, tint);
         }
 
+        // Dessine le sprite debout, pieds posés sur ground ; flipped : retourné horizontalement
+        // (les personnages regardent vers la droite par défaut) ; tint : teinte
+        void DrawStanding(const ScreenPos ground, const bool flipped, const Color tint) const {
+            const auto width = static_cast<float>(texture.width);
+            const auto height = static_cast<float>(texture.height);
+            // Largeur négative dans le rectangle source : raylib dessine l'image en miroir
+            const auto source = Rectangle{0.0f, 0.0f, flipped ? -width : width, height};
+            const auto destination = Rectangle{ground.x - width / 2.0f, ground.y - height, width, height};
+            DrawTexturePro(texture, source, destination, Vector2{0.0f, 0.0f}, 0.0f, tint);
+        }
+
+        // Renvoie la hauteur du sprite en pixels
+        float Height() const noexcept {
+            return static_cast<float>(texture.height);
+        }
+
     private:
         Texture2D texture;
     };
@@ -49,6 +65,10 @@ namespace ui {
         TileSprite manhole;
         TileSprite metro;
         std::array<TileSprite, 3> buildings;   // Brique, béton, crépi
+        TileSprite player;                      // Motard à pied
+        TileSprite fastEnemy;                   // Voyou en trottinette
+        TileSprite heavyEnemy;                  // Voyou en rollers
+        TileSprite boss;                        // Cycliste
 
         // Charge chaque sprite depuis directory
         explicit Sprites(const std::filesystem::path& directory)
@@ -59,7 +79,11 @@ namespace ui {
               metro{directory / "metro.png"},
               buildings{TileSprite{directory / "building_brick.png"},
                         TileSprite{directory / "building_concrete.png"},
-                        TileSprite{directory / "building_stucco.png"}} {}
+                        TileSprite{directory / "building_stucco.png"}},
+              player{directory / "player.png"},
+              fastEnemy{directory / "enemy_fast.png"},
+              heavyEnemy{directory / "enemy_heavy.png"},
+              boss{directory / "boss.png"} {}
 
         // Renvoie la variante d'immeuble de la case pos (toujours la même pour une case)
         const TileSprite& BuildingAt(const core::GridPos pos) const {
@@ -70,24 +94,24 @@ namespace ui {
     // Éléments internes à ce fichier
     namespace {
 
-        // Apparence provisoire d'une entité : cercle coloré surélevé et barre de vie au-dessus
-        struct MarkerStyle {
+        // Barre de vie d'une entité : couleur et largeur
+        struct HealthBarStyle {
             Color fill;
-            Color outline;
-            Color health;
-            float radius;
-            float elevation;
-            float healthBarWidth;
+            float width;
         };
 
-        constexpr MarkerStyle playerStyle{{60, 140, 230, 255}, {20, 40, 80, 255}, {70, 200, 90, 255}, 6.0f, 8.0f, 20.0f};
-        constexpr MarkerStyle lockedPlayerStyle{{140, 145, 160, 255}, {20, 40, 80, 255}, {70, 200, 90, 255}, 6.0f, 8.0f, 20.0f};
-        constexpr MarkerStyle enemyStyle{{220, 50, 50, 255}, {90, 15, 15, 255}, {220, 50, 50, 255}, 6.0f, 8.0f, 20.0f};
-        constexpr MarkerStyle bossStyle{{110, 15, 20, 255}, {50, 5, 8, 255}, {220, 50, 50, 255}, 14.0f, 14.0f, 40.0f};
+        constexpr HealthBarStyle playerBar{{70, 200, 90, 255}, 20.0f};
+        constexpr HealthBarStyle enemyBar{{220, 50, 50, 255}, 20.0f};
+        constexpr HealthBarStyle bossBar{{220, 50, 50, 255}, 40.0f};
+
+        // Le joueur immobilisé après une attaque est grisé
+        constexpr Color lockedTint{120, 120, 130, 255};
+        // Décalage des pieds sous le centre de la case (le personnage paraît posé sur le sol)
+        constexpr float footOffset{4.0f};
 
         constexpr Color healthBackgroundColor{30, 20, 20, 220};
         constexpr float healthBarHeight{3.0f};
-        constexpr float healthBarGap{4.0f};       // Espace entre le cercle et la barre
+        constexpr float healthBarGap{2.0f};       // Espace entre le sprite et la barre
         constexpr int countdownFontSize{10};
         constexpr float countdownGap{2.0f};       // Espace entre la barre de vie et le compteur
 
@@ -162,25 +186,25 @@ namespace ui {
             }
         }
 
-        // Dessine le repère de entity (style donné) posé sur ground, avec sa barre de vie
-        // et, si countdown est fourni, le temps avant sa prochaine frappe au-dessus
-        void DrawMarker(const ScreenPos ground, const core::Entity& entity, const MarkerStyle& style,
-                        const std::optional<core::Seconds> countdown = std::nullopt) {
-            const auto position = Vector2{ground.x, ground.y - style.elevation};
-            DrawCircleV(position, style.radius, style.fill);
-            DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), style.radius, style.outline);
+        // Dessine entity avec sprite posé sur ground (retourné si flipped, teinté par tint), sa barre de vie
+        // au-dessus et, si countdown est fourni, le temps avant sa prochaine frappe au-dessus de la barre
+        void DrawCharacter(const ScreenPos ground, const core::Entity& entity, const TileSprite& sprite,
+                           const bool flipped, const Color tint, const HealthBarStyle& bar,
+                           const std::optional<core::Seconds> countdown = std::nullopt) {
+            const auto feet = ScreenPos{ground.x, ground.y + footOffset};
+            sprite.DrawStanding(feet, flipped, tint);
 
             const auto ratio = static_cast<float>(entity.GetHealth()) / static_cast<float>(entity.GetMaxHealth());
-            const auto left = position.x - style.healthBarWidth / 2.0f;
-            const auto top = position.y - style.radius - healthBarGap - healthBarHeight;
-            DrawRectangleRec(Rectangle{left - 1.0f, top - 1.0f, style.healthBarWidth + 2.0f, healthBarHeight + 2.0f},
+            const auto left = feet.x - bar.width / 2.0f;
+            const auto top = feet.y - sprite.Height() - healthBarGap - healthBarHeight;
+            DrawRectangleRec(Rectangle{left - 1.0f, top - 1.0f, bar.width + 2.0f, healthBarHeight + 2.0f},
                              healthBackgroundColor);
-            DrawRectangleRec(Rectangle{left, top, style.healthBarWidth * ratio, healthBarHeight}, style.health);
+            DrawRectangleRec(Rectangle{left, top, bar.width * ratio, healthBarHeight}, bar.fill);
 
             if (countdown) {
                 const auto text = std::format("{:.1f}", countdown->count());
                 const auto textWidth = static_cast<float>(MeasureText(text.c_str(), countdownFontSize));
-                DrawText(text.c_str(), static_cast<int>(position.x - textWidth / 2.0f),
+                DrawText(text.c_str(), static_cast<int>(feet.x - textWidth / 2.0f),
                          static_cast<int>(top - countdownGap - static_cast<float>(countdownFontSize)), countdownFontSize,
                          RAYWHITE);
             }
@@ -249,6 +273,7 @@ namespace ui {
         const auto& dungeon = scene.dungeon;
         const auto& grid = dungeon.grid;
         const auto importantTiles = ImportantTiles(scene);
+        const auto playerScreenX = GridToScreen(scene.player.GetPosition(), origin).x;
 
         // Parcours par diagonales (sum = x + y), en gardant y = sum - x dans la grille
         for (auto sum = 0; sum <= grid.GetWidth() + grid.GetHeight() - 2; ++sum) {
@@ -294,19 +319,24 @@ namespace ui {
                         scene.hoveredTile == pos
                     });
                 }
+                // Orientation : le joueur regarde vers la case visée, les adversaires vers le joueur
                 if (pos == scene.player.GetPosition()) {
-                    DrawMarker(center, scene.player, scene.player.IsLocked() ? lockedPlayerStyle : playerStyle);
+                    const auto facesLeft = scene.hoveredTile && GridToScreen(*scene.hoveredTile, origin).x < center.x;
+                    DrawCharacter(center, scene.player, sprites->player, facesLeft,
+                                  scene.player.IsLocked() ? lockedTint : WHITE, playerBar);
                 }
                 for (const auto& enemy : scene.enemies) {
                     if (enemy->GetPosition() == pos) {
-                        DrawMarker(center, *enemy, enemyStyle, CountdownOf(*enemy));
+                        const auto& sprite = enemy->GetKind() == core::EnemyKind::Fast ? sprites->fastEnemy : sprites->heavyEnemy;
+                        DrawCharacter(center, *enemy, sprite, playerScreenX < center.x, WHITE, enemyBar, CountdownOf(*enemy));
                     }
                 }
                 // Boss après sa dernière case, centré sur son carré (milieu de la première et de la dernière case)
                 if (scene.boss && pos == scene.boss->OccupiedTiles().back()) {
                     const auto first = GridToScreen(scene.boss->GetPosition(), origin);
-                    DrawMarker(ScreenPos{(first.x + center.x) / 2.0f, (first.y + center.y) / 2.0f}, *scene.boss, bossStyle,
-                               CountdownOf(*scene.boss));
+                    const auto middle = ScreenPos{(first.x + center.x) / 2.0f, (first.y + center.y) / 2.0f};
+                    DrawCharacter(middle, *scene.boss, sprites->boss, playerScreenX < middle.x, WHITE, bossBar,
+                                  CountdownOf(*scene.boss));
                 }
             }
         }

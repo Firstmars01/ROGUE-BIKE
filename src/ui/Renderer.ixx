@@ -43,8 +43,9 @@ export namespace ui {
         // Dessine la scène dans l'ordre du peintre (x + y croissant) : pavés (salles), asphalte (couloirs),
         // immeubles (transparents s'ils cachent une entité ou la case visée) ou trottoirs (murs),
         // plaque d'égout (départ), métro (sortie), quadrillage, surcouches de la scène (déplacement,
-        // visée, zones de frappe, survol), joueur (point bleu, gris s'il est immobilisé), ennemis (points rouges),
-        // boss (gros point rouge foncé sur ses 2x2 cases), barre de vie et compteur de frappe des adversaires.
+        // visée, zones de frappe, survol), personnages (motard, grisé s'il est immobilisé ; voyous en trottinette
+        // ou en rollers ; boss cycliste sur ses 2x2 cases), barres de vie et compteurs de frappe.
+        // Le joueur regarde vers la case visée, les adversaires vers le joueur.
         // À appeler entre Window::BeginFrame() et Window::EndFrame().
         void DrawScene(const SceneView& scene) const;
 

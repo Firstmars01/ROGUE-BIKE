@@ -25,7 +25,7 @@ Le joueur, un motard, parcourt des quartiers générés procéduralement (places
 │   └── catch2.cmake        # Téléchargement de Catch2 v3.7.0
 ├── assets/sprites/         # Sprites pixel art isométriques (copiés à côté de l'exécutable au build)
 ├── tools/
-│   └── GenerateSprites.py  # Script Python (Pillow) qui régénère les sprites
+│   └── GenerateSprites.py  # Script Python (Pillow) qui régénère les sprites (décor et personnages)
 ├── src/
 │   ├── core/               # Bibliothèque rogueCore : logique du jeu, SANS dépendance graphique
 │   │   ├── Config.ixx                                  # core.config : fenêtre, taille de carte, graine
@@ -104,13 +104,13 @@ python tools/GenerateSprites.py
 - Plein écran sans bordure. Le jeu est dessiné sur un canevas fixe de 1920x1080, mis à l'échelle et centré si l'écran a une autre taille ; la souris est convertie de la même façon.
 - Caméra fixe montrant toute la carte. La graine courante et l'aide sont affichées en haut à gauche.
 
-### Entités (repères provisoires en attendant les sprites)
+### Entités
 
-| Entité | Repère | PV | Attaques | Règles |
+| Entité | Sprite | PV | Attaques | Règles |
 |---|---|---|---|---|
-| Joueur (motard) | Point bleu, barre verte | 100 | Casque, Klaxon, Cocktail | Part de la plaque d'égout ; se déplace d'au plus `speed` = 4 cases en marchant |
-| Ennemi (voyou rapide ou costaud, au hasard) | Point rouge, barre rouge | 75 | Couteau (rapide) ou Batte (costaud) | 2 à 5 par salle selon sa surface (5x5 : 2, 10x10 : 5) ; jamais dans la salle de départ ni dans celle du boss |
-| Boss (chef de gang) | Gros point rouge foncé, barre large | 1000 | Onde de choc | Occupe 2x2 cases, collé à la bouche de métro du côté d'où arrive le couloir ; seul dans sa salle (au moins 8x8) |
+| Joueur (motard) | Motard à pied, casque rouge ; barre verte | 100 | Casque, Klaxon, Cocktail | Part de la plaque d'égout ; se déplace d'au plus `speed` = 4 cases en marchant |
+| Ennemi (voyou rapide ou costaud, au hasard) | Rapide : sweat vert en trottinette ; costaud : blouson bordeaux en rollers ; barre rouge | 75 | Couteau (rapide) ou Batte (costaud) | 2 à 5 par salle selon sa surface (5x5 : 2, 10x10 : 5) ; jamais dans la salle de départ ni dans celle du boss |
+| Boss (chef de gang) | Cycliste en maillot jaune sur son vélo (sur ses 2x2 cases) ; barre rouge large | 1000 | Onde de choc | Occupe 2x2 cases, collé à la bouche de métro du côté d'où arrive le couloir ; seul dans sa salle (au moins 8x8) |
 
 - La zone de déplacement du joueur s'affiche en bleu : cases atteignables en marchant (murs contournés) en au plus 4 pas.
 - Les ennemis et le boss sont des obstacles : le joueur ne peut ni s'arrêter sur leurs cases ni passer à travers. La sortie reste toujours accessible en contournant le boss.
@@ -149,7 +149,8 @@ Portée et zones carrées mesurées en cases, diagonales comprises (distance de 
   - barre d'attaques en bas : nom, touche, dégâts ou temps restant, voile gris qui descend avec le cooldown, attaque choisie encadrée en jaune ;
   - attaque choisie : cases visables en orange, zone touchée sous la souris en rouge vif (même règle que l'attaque réelle) ;
   - adversaires actifs : temps avant leur prochaine frappe au-dessus de leur barre de vie ; leur zone de frappe s'affiche en rouge pendant la dernière seconde ;
-  - joueur immobilisé après une attaque : son repère devient gris.
+  - joueur immobilisé après une attaque : son sprite est grisé.
+- Orientation : le joueur regarde vers la case sous la souris, les adversaires se tournent vers le joueur (sprite retourné horizontalement).
 - Une attaque à distance ne peut jamais viser la case du joueur ; une attaque de portée 0 ne vise que lui.
 
 ### Tests
