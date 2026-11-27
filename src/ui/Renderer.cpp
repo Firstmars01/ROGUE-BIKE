@@ -46,9 +46,7 @@ namespace ui {
         TileSprite sidewalk;
         TileSprite manhole;
         TileSprite metro;
-        TileSprite brickBuilding;
-        TileSprite concreteBuilding;
-        TileSprite stuccoBuilding;
+        std::array<TileSprite, 3> buildings;   // Brique, béton, crépi
 
         // Charge chaque sprite depuis directory
         explicit Sprites(const std::filesystem::path& directory)
@@ -57,46 +55,36 @@ namespace ui {
               sidewalk{directory / "sidewalk.png"},
               manhole{directory / "manhole.png"},
               metro{directory / "metro.png"},
-              brickBuilding{directory / "building_brick.png"},
-              concreteBuilding{directory / "building_concrete.png"},
-              stuccoBuilding{directory / "building_stucco.png"} {}
+              buildings{TileSprite{directory / "building_brick.png"},
+                        TileSprite{directory / "building_concrete.png"},
+                        TileSprite{directory / "building_stucco.png"}} {}
 
         // Renvoie la variante d'immeuble de la case pos (toujours la même pour une case)
         const TileSprite& BuildingAt(const core::GridPos pos) const {
-            switch ((pos.x * 7 + pos.y * 13) % 3) {
-                case 0:
-                    return brickBuilding;
-                case 1:
-                    return concreteBuilding;
-                default:
-                    return stuccoBuilding;
-            }
+            return buildings[static_cast<std::size_t>((pos.x * 7 + pos.y * 13) % 3)];
         }
     };
 
     // Éléments internes à ce fichier
     namespace {
 
-        // Repères provisoires des entités : cercles colorés au-dessus du sol
-        constexpr Color playerColor{60, 140, 230, 255};
-        constexpr Color playerOutlineColor{20, 40, 80, 255};
-        constexpr Color enemyColor{220, 50, 50, 255};
-        constexpr Color enemyOutlineColor{90, 15, 15, 255};
-        constexpr Color bossColor{110, 15, 20, 255};
-        constexpr Color bossOutlineColor{50, 5, 8, 255};
-        constexpr float markerRadius{6.0f};
-        constexpr float bossRadius{14.0f};
-        constexpr float bossElevation{14.0f};
+        // Apparence provisoire d'une entité : cercle coloré surélevé et barre de vie au-dessus
+        struct MarkerStyle {
+            Color fill;
+            Color outline;
+            Color health;
+            float radius;
+            float elevation;
+            float healthBarWidth;
+        };
 
-        // Barres de vie au-dessus des entités
+        constexpr MarkerStyle playerStyle{{60, 140, 230, 255}, {20, 40, 80, 255}, {70, 200, 90, 255}, 6.0f, 8.0f, 20.0f};
+        constexpr MarkerStyle enemyStyle{{220, 50, 50, 255}, {90, 15, 15, 255}, {220, 50, 50, 255}, 6.0f, 8.0f, 20.0f};
+        constexpr MarkerStyle bossStyle{{110, 15, 20, 255}, {50, 5, 8, 255}, {220, 50, 50, 255}, 14.0f, 14.0f, 40.0f};
+
         constexpr Color healthBackgroundColor{30, 20, 20, 220};
-        constexpr Color playerHealthColor{70, 200, 90, 255};
-        constexpr Color enemyHealthColor{220, 50, 50, 255};
-        constexpr float healthBarWidth{20.0f};
-        constexpr float bossHealthBarWidth{40.0f};
         constexpr float healthBarHeight{3.0f};
-        constexpr float healthBarGap{4.0f};       // Espace entre le repère et la barre
-        constexpr float markerElevation{8.0f};
+        constexpr float healthBarGap{4.0f};       // Espace entre le cercle et la barre
 
         // Surcouches des cases praticables (semi-transparentes)
         constexpr Color gridLineColor{255, 255, 255, 40};
@@ -110,24 +98,6 @@ namespace ui {
         // Immeuble à moitié transparent quand il cache une entité ou la case visée
         constexpr Color seeThroughTint{255, 255, 255, 90};
 
-        // Les 4 sommets du losange d'une case
-        struct Diamond {
-            Vector2 top{};
-            Vector2 left{};
-            Vector2 bottom{};
-            Vector2 right{};
-        };
-
-        // Renvoie le losange de la case de centre center
-        Diamond MakeDiamond(const ScreenPos center) {
-            return Diamond{
-                Vector2{center.x, center.y - halfTileHeight},
-                Vector2{center.x - halfTileWidth, center.y},
-                Vector2{center.x, center.y + halfTileHeight},
-                Vector2{center.x + halfTileWidth, center.y}
-            };
-        }
-
         // Dessine un triangle plein quel que soit l'ordre des sommets
         // (raylib n'affiche que les triangles donnés dans le sens inverse des aiguilles d'une montre)
         void FillTriangle(const Vector2 a, const Vector2 b, const Vector2 c, const Color color) {
@@ -139,70 +109,35 @@ namespace ui {
             }
         }
 
-        // Remplit le losange de la case de centre center
-        void FillTile(const ScreenPos center, const Color color) {
-            const auto diamond = MakeDiamond(center);
-            FillTriangle(diamond.top, diamond.left, diamond.bottom, color);
-            FillTriangle(diamond.top, diamond.bottom, diamond.right, color);
-        }
-
-        // Trace le contour du losange de la case de centre center
-        void OutlineTile(const ScreenPos center, const Color color) {
-            const auto diamond = MakeDiamond(center);
-            DrawLineV(diamond.top, diamond.left, color);
-            DrawLineV(diamond.left, diamond.bottom, color);
-            DrawLineV(diamond.bottom, diamond.right, color);
-            DrawLineV(diamond.right, diamond.top, color);
-        }
-
         // Dessine les surcouches d'une case praticable : quadrillage, zone de déplacement, survol
         void DrawTileOverlays(const ScreenPos center, const bool reachable, const bool hovered) {
-            OutlineTile(center, gridLineColor);
-            if (reachable) {
-                FillTile(center, hovered ? hoveredReachableColor : reachableColor);
-            } else if (hovered) {
-                FillTile(center, hoveredColor);
+            const auto top = Vector2{center.x, center.y - halfTileHeight};
+            const auto left = Vector2{center.x - halfTileWidth, center.y};
+            const auto bottom = Vector2{center.x, center.y + halfTileHeight};
+            const auto right = Vector2{center.x + halfTileWidth, center.y};
+            DrawLineV(top, left, gridLineColor);
+            DrawLineV(left, bottom, gridLineColor);
+            DrawLineV(bottom, right, gridLineColor);
+            DrawLineV(right, top, gridLineColor);
+            if (reachable || hovered) {
+                const auto fill = reachable ? (hovered ? hoveredReachableColor : reachableColor) : hoveredColor;
+                FillTriangle(top, left, bottom, fill);
+                FillTriangle(top, bottom, right, fill);
             }
         }
 
-        // Dessine une barre de vie centrée en x, posée au-dessus de bottomY, remplie selon les PV de entity
-        void DrawHealthBar(const float x, const float bottomY, const float width, const core::Entity& entity,
-                           const Color fill) {
+        // Dessine le repère de entity (style donné) posé sur ground, avec sa barre de vie
+        void DrawMarker(const ScreenPos ground, const core::Entity& entity, const MarkerStyle& style) {
+            const auto position = Vector2{ground.x, ground.y - style.elevation};
+            DrawCircleV(position, style.radius, style.fill);
+            DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), style.radius, style.outline);
+
             const auto ratio = static_cast<float>(entity.GetHealth()) / static_cast<float>(entity.GetMaxHealth());
-            const auto left = x - width / 2.0f;
-            const auto top = bottomY - healthBarHeight;
-            DrawRectangleRec(Rectangle{left - 1.0f, top - 1.0f, width + 2.0f, healthBarHeight + 2.0f}, healthBackgroundColor);
-            DrawRectangleRec(Rectangle{left, top, width * ratio, healthBarHeight}, fill);
-        }
-
-        // Dessine un repère d'entité (cercle plein et contour) et sa barre de vie sur la case de centre center
-        void DrawMarker(const ScreenPos center, const core::Entity& entity, const Color fill, const Color outline,
-                        const Color healthFill) {
-            const auto position = Vector2{center.x, center.y - markerElevation};
-            DrawCircleV(position, markerRadius, fill);
-            DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), markerRadius, outline);
-            DrawHealthBar(position.x, position.y - markerRadius - healthBarGap, healthBarWidth, entity, healthFill);
-        }
-
-        // Dessine le boss (gros point centré sur son carré de cases) et sa barre de vie
-        void DrawBoss(const core::Boss& boss, const ScreenPos origin) {
-            // Centre du carré = milieu entre les centres de la première et de la dernière case
-            const auto last = core::Boss::size - 1;
-            const auto topLeft = boss.GetPosition();
-            const auto first = GridToScreen(topLeft, origin);
-            const auto opposite = GridToScreen(core::GridPos{topLeft.x + last, topLeft.y + last}, origin);
-            const auto position = Vector2{(first.x + opposite.x) / 2.0f, (first.y + opposite.y) / 2.0f - bossElevation};
-            DrawCircleV(position, bossRadius, bossColor);
-            DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), bossRadius, bossOutlineColor);
-            DrawHealthBar(position.x, position.y - bossRadius - healthBarGap, bossHealthBarWidth, boss, enemyHealthColor);
-        }
-
-        // Indique si pos est un couloir (praticable et hors de toute salle)
-        bool IsCorridorTile(const core::Dungeon& dungeon, const core::GridPos pos) {
-            return dungeon.grid.IsWalkable(pos)
-                   && std::ranges::none_of(dungeon.rooms, [pos](const core::Room& room) {
-                          return room.Contains(pos);
-                      });
+            const auto left = position.x - style.healthBarWidth / 2.0f;
+            const auto top = position.y - style.radius - healthBarGap - healthBarHeight;
+            DrawRectangleRec(Rectangle{left - 1.0f, top - 1.0f, style.healthBarWidth + 2.0f, healthBarHeight + 2.0f},
+                             healthBackgroundColor);
+            DrawRectangleRec(Rectangle{left, top, style.healthBarWidth * ratio, healthBarHeight}, style.health);
         }
 
         // Indique si un immeuble en building recouvre à l'écran la case target : cases (x - i, y - j)
@@ -214,12 +149,12 @@ namespace ui {
                    && i + j > 0 && std::abs(i - j) <= 1;
         }
 
-        // Indique si un immeuble en pos cacherait un couloir
+        // Indique si un immeuble en pos cacherait un couloir (case praticable hors de toute salle)
         bool HidesCorridorTile(const core::Dungeon& dungeon, const core::GridPos pos) {
             for (auto i = 0; i <= buildingRowsCovered; ++i) {
                 for (auto j = 0; j <= buildingRowsCovered; ++j) {
                     const auto behind = core::GridPos{pos.x - i, pos.y - j};
-                    if (Covers(pos, behind) && IsCorridorTile(dungeon, behind)) {
+                    if (Covers(pos, behind) && dungeon.grid.IsWalkable(behind) && !core::IsInAnyRoom(dungeon.rooms, behind)) {
                         return true;
                     }
                 }
@@ -227,18 +162,17 @@ namespace ui {
             return false;
         }
 
-        // Indique si un immeuble en pos cache le joueur, un ennemi, le boss ou la case sous la souris
-        bool HidesImportantTile(const SceneView& scene, const core::GridPos pos) {
-            if (Covers(pos, scene.player.GetPosition()) || (scene.hoveredTile && Covers(pos, *scene.hoveredTile))) {
-                return true;
+        // Renvoie les cases qu'aucun immeuble ne doit cacher : joueur, ennemis, boss, case sous la souris
+        std::vector<core::GridPos> ImportantTiles(const SceneView& scene) {
+            auto tiles = scene.boss.OccupiedTiles();
+            tiles.push_back(scene.player.GetPosition());
+            for (const auto& enemy : scene.enemies) {
+                tiles.push_back(enemy->GetPosition());
             }
-            const auto bossTiles = scene.boss.OccupiedTiles();
-            if (std::ranges::any_of(bossTiles, [pos](const core::GridPos tile) { return Covers(pos, tile); })) {
-                return true;
+            if (scene.hoveredTile) {
+                tiles.push_back(*scene.hoveredTile);
             }
-            return std::ranges::any_of(scene.enemies, [pos](const auto& enemy) {
-                return Covers(pos, enemy->GetPosition());
-            });
+            return tiles;
         }
 
     }
@@ -258,12 +192,14 @@ namespace ui {
     void Renderer::DrawScene(const SceneView& scene) const {
         const auto& dungeon = scene.dungeon;
         const auto& grid = dungeon.grid;
-        const auto width = grid.GetWidth();
-        const auto height = grid.GetHeight();
+        const auto importantTiles = ImportantTiles(scene);
+        const auto bossTopLeft = scene.boss.GetPosition();
+        const auto bossLastTile = core::GridPos{bossTopLeft.x + core::Boss::size - 1, bossTopLeft.y + core::Boss::size - 1};
+
         // Parcours par diagonales (sum = x + y), en gardant y = sum - x dans la grille
-        for (auto sum = 0; sum <= width + height - 2; ++sum) {
-            const auto firstX = std::max(0, sum - (height - 1));
-            const auto lastX = std::min(sum, width - 1);
+        for (auto sum = 0; sum <= grid.GetWidth() + grid.GetHeight() - 2; ++sum) {
+            const auto firstX = std::max(0, sum - (grid.GetHeight() - 1));
+            const auto lastX = std::min(sum, grid.GetWidth() - 1);
             for (auto x = firstX; x <= lastX; ++x) {
                 const auto pos = core::GridPos{x, sum - x};
                 const auto center = GridToScreen(pos, origin);
@@ -272,7 +208,7 @@ namespace ui {
                         if (pos == dungeon.playerStart) {
                             sprites->manhole.DrawOnTile(center);
                         } else {
-                            (IsCorridorTile(dungeon, pos) ? sprites->asphalt : sprites->pavement).DrawOnTile(center);
+                            (core::IsInAnyRoom(dungeon.rooms, pos) ? sprites->pavement : sprites->asphalt).DrawOnTile(center);
                         }
                         break;
                     case core::TileType::Stairs:
@@ -284,31 +220,33 @@ namespace ui {
                             sprites->sidewalk.DrawOnTile(center);
                         } else {
                             // Immeuble, transparent s'il cache une entité ou la case visée
-                            sprites->BuildingAt(pos).DrawOnTile(center, HidesImportantTile(scene, pos) ? seeThroughTint : WHITE);
+                            const auto hides = std::ranges::any_of(importantTiles, [pos](const core::GridPos tile) {
+                                return Covers(pos, tile);
+                            });
+                            sprites->BuildingAt(pos).DrawOnTile(center, hides ? seeThroughTint : WHITE);
                         }
                         break;
                     case core::TileType::Empty:
                         break;
                 }
-                // Surcouches juste après la case : les immeubles placés devant les recouvrent
+
+                // Surcouches et entités juste après leur case : les immeubles placés devant les recouvrent
                 if (grid.IsWalkable(pos)) {
                     const auto reachable = std::ranges::find(scene.reachableTiles, pos) != scene.reachableTiles.end();
                     DrawTileOverlays(center, reachable, scene.hoveredTile == pos);
                 }
-                // Entités dessinées juste après leur case : les immeubles devant elles les recouvrent
                 if (pos == scene.player.GetPosition()) {
-                    DrawMarker(center, scene.player, playerColor, playerOutlineColor, playerHealthColor);
+                    DrawMarker(center, scene.player, playerStyle);
                 }
-                const auto enemy = std::ranges::find_if(scene.enemies, [pos](const auto& candidate) {
-                    return candidate->GetPosition() == pos;
-                });
-                if (enemy != scene.enemies.end()) {
-                    DrawMarker(center, **enemy, enemyColor, enemyOutlineColor, enemyHealthColor);
+                for (const auto& enemy : scene.enemies) {
+                    if (enemy->GetPosition() == pos) {
+                        DrawMarker(center, *enemy, enemyStyle);
+                    }
                 }
-                // Boss dessiné après la dernière de ses cases (la plus proche de la caméra)
-                const auto bossLast = core::Boss::size - 1;
-                if (pos == core::GridPos{scene.boss.GetPosition().x + bossLast, scene.boss.GetPosition().y + bossLast}) {
-                    DrawBoss(scene.boss, origin);
+                // Boss après sa dernière case, centré sur son carré (milieu de la première et de la dernière case)
+                if (pos == bossLastTile) {
+                    const auto first = GridToScreen(bossTopLeft, origin);
+                    DrawMarker(ScreenPos{(first.x + center.x) / 2.0f, (first.y + center.y) / 2.0f}, scene.boss, bossStyle);
                 }
             }
         }

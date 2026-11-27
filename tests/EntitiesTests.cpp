@@ -123,9 +123,6 @@ TEST_CASE("Le boss occupe un carre de 2x2 cases", "[entities]") {
     REQUIRE(boss.GetHealth() == Boss::startHealth);
     REQUIRE(boss.GetAttack() == Boss::startAttack);
     REQUIRE(boss.OccupiedTiles() == std::vector<GridPos>{GridPos{4, 6}, GridPos{5, 6}, GridPos{4, 7}, GridPos{5, 7}});
-    REQUIRE(boss.Occupies(GridPos{5, 7}));
-    REQUIRE_FALSE(boss.Occupies(GridPos{6, 7}));
-    REQUIRE_FALSE(boss.Occupies(GridPos{4, 5}));
 }
 
 TEST_CASE("Joueur et ennemis se manipulent ensemble via Entity (polymorphisme)", "[entities]") {

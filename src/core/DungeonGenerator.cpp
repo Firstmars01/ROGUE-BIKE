@@ -46,6 +46,10 @@ namespace core {
         return pos.x >= x && pos.x < x + width && pos.y >= y && pos.y < y + height;
     }
 
+    bool IsInAnyRoom(const std::vector<Room>& rooms, const GridPos pos) {
+        return std::ranges::any_of(rooms, [pos](const Room& room) { return room.Contains(pos); });
+    }
+
     // ----- DungeonGenerator -----
 
     DungeonGenerator::DungeonGenerator(const std::uint32_t seed) : random{seed} {}
@@ -167,24 +171,17 @@ namespace core {
     }
 
     void DungeonGenerator::CarveCorridor(Grid& grid, const GridPos from, const GridPos to) {
-        if (RandomInt(0, 1) == 0) {
-            CarveHorizontal(grid, from.x, to.x, from.y);
-            CarveVertical(grid, from.y, to.y, to.x);
-        } else {
-            CarveVertical(grid, from.y, to.y, from.x);
-            CarveHorizontal(grid, from.x, to.x, to.y);
-        }
+        // Le coude du L est tiré au hasard : (to.x, from.y) ou (from.x, to.y)
+        const auto corner = RandomInt(0, 1) == 0 ? GridPos{to.x, from.y} : GridPos{from.x, to.y};
+        CarveLine(grid, from, corner);
+        CarveLine(grid, corner, to);
     }
 
-    void DungeonGenerator::CarveHorizontal(Grid& grid, const int x1, const int x2, const int y) {
-        for (auto x = std::min(x1, x2); x <= std::max(x1, x2); ++x) {
-            grid.SetTile(GridPos{x, y}, TileType::Floor);
-        }
-    }
-
-    void DungeonGenerator::CarveVertical(Grid& grid, const int y1, const int y2, const int x) {
-        for (auto y = std::min(y1, y2); y <= std::max(y1, y2); ++y) {
-            grid.SetTile(GridPos{x, y}, TileType::Floor);
+    void DungeonGenerator::CarveLine(Grid& grid, const GridPos from, const GridPos to) {
+        for (auto y = std::min(from.y, to.y); y <= std::max(from.y, to.y); ++y) {
+            for (auto x = std::min(from.x, to.x); x <= std::max(from.x, to.x); ++x) {
+                grid.SetTile(GridPos{x, y}, TileType::Floor);
+            }
         }
     }
 
@@ -220,10 +217,6 @@ namespace core {
             }
         }
         return changed;
-    }
-
-    bool DungeonGenerator::IsInAnyRoom(const std::vector<Room>& rooms, const GridPos pos) {
-        return std::ranges::any_of(rooms, [pos](const Room& room) { return room.Contains(pos); });
     }
 
     bool DungeonGenerator::HasWalkableNeighbour(const Grid& grid, const GridPos pos) {

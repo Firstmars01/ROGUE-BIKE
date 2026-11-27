@@ -107,9 +107,6 @@ export namespace core {
         // Renvoie "Chef de gang"
         std::string GetName() const override;
 
-        // Indique si pos fait partie du carré occupé par le boss
-        bool Occupies(const GridPos pos) const noexcept;
-
         // Renvoie les size x size cases occupées
         std::vector<GridPos> OccupiedTiles() const;
     };

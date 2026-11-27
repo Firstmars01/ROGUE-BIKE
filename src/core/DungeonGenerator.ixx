@@ -55,6 +55,9 @@ export namespace core {
         std::vector<GridPos> enemySpawns;  // Ennemis (ni dans la salle de départ, ni dans celle du boss)
     };
 
+    // Indique si pos appartient à l'une des salles
+    bool IsInAnyRoom(const std::vector<Room>& rooms, const GridPos pos);
+
     // Générateur procédural basé sur std::mt19937
     class DungeonGenerator {
     public:
@@ -103,11 +106,8 @@ export namespace core {
         // Creuse un couloir en L entre from et to (ordre des segments aléatoire)
         void CarveCorridor(Grid& grid, const GridPos from, const GridPos to);
 
-        // Creuse une ligne de sol horizontale de x1 à x2 sur la ligne y
-        static void CarveHorizontal(Grid& grid, const int x1, const int x2, const int y);
-
-        // Creuse une ligne de sol verticale de y1 à y2 sur la colonne x
-        static void CarveVertical(Grid& grid, const int y1, const int y2, const int x);
+        // Creuse une ligne droite de sol (horizontale ou verticale) de from à to inclus
+        static void CarveLine(Grid& grid, const GridPos from, const GridPos to);
 
         // Entoure de murs toutes les cases praticables
         static void AddWallsAroundFloors(Grid& grid);
@@ -115,9 +115,6 @@ export namespace core {
         // Remplace un mur des motifs sol / mur / mur / sol par du sol (côté couloir).
         // Renvoie true si au moins un mur a été remplacé.
         static bool ThinDoubleWalls(Grid& grid, const std::vector<Room>& rooms);
-
-        // Indique si pos appartient à une salle
-        static bool IsInAnyRoom(const std::vector<Room>& rooms, const GridPos pos);
 
         // Choisit au hasard les cases des ennemis : EnemyCountFor(salle) cases distinctes par salle,
         // sauf la première (départ) et la dernière (boss)

@@ -1,22 +1,11 @@
 // Tests unitaires du module core.grid : dimensions, accès sécurisé, praticabilité.
 #include <catch2/catch_all.hpp>
+#include <algorithm>
 
 import core.grid;
 import core.exceptions;
 
 using namespace core;
-
-// Compte le nombre de tuiles d'un type donné dans la grille.
-// grid : grille à parcourir ; type : type recherché. Renvoie le nombre d'occurrences.
-static int CountTiles(const Grid& grid, const TileType type) {
-    auto count = 0;
-    for (const auto tile : grid.GetTiles()) {
-        if (tile == type) {
-            ++count;
-        }
-    }
-    return count;
-}
 
 TEST_CASE("Une nouvelle grille a les bonnes dimensions et est vide", "[grid]") {
     const auto grid = Grid{40, 30};
@@ -24,7 +13,7 @@ TEST_CASE("Une nouvelle grille a les bonnes dimensions et est vide", "[grid]") {
     REQUIRE(grid.GetWidth() == 40);
     REQUIRE(grid.GetHeight() == 30);
     REQUIRE(grid.GetTiles().size() == 40 * 30);
-    REQUIRE(CountTiles(grid, TileType::Empty) == 40 * 30);
+    REQUIRE(std::ranges::count(grid.GetTiles(), TileType::Empty) == 40 * 30);
 }
 
 TEST_CASE("Des dimensions invalides sont refusees", "[grid]") {
@@ -63,7 +52,7 @@ TEST_CASE("GetTile et SetTile sont securises", "[grid]") {
 
     SECTION("Ecriture hors des bornes : refusee sans effet") {
         REQUIRE_FALSE(grid.SetTile(GridPos{5, 0}, TileType::Floor));
-        REQUIRE(CountTiles(grid, TileType::Floor) == 0);
+        REQUIRE(std::ranges::count(grid.GetTiles(), TileType::Floor) == 0);
     }
 }
 

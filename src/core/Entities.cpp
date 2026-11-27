@@ -66,11 +66,6 @@ namespace core {
         return "Chef de gang";
     }
 
-    bool Boss::Occupies(const GridPos pos) const noexcept {
-        const auto topLeft = GetPosition();
-        return pos.x >= topLeft.x && pos.x < topLeft.x + size && pos.y >= topLeft.y && pos.y < topLeft.y + size;
-    }
-
     std::vector<GridPos> Boss::OccupiedTiles() const {
         const auto topLeft = GetPosition();
         auto tiles = std::vector<GridPos>{};

@@ -2,9 +2,7 @@
 // accessibilité et reproductibilité, vérifiés sur plusieurs graines.
 #include <catch2/catch_all.hpp>
 #include <algorithm>
-#include <array>
 #include <cstdlib>
-#include <queue>
 #include <vector>
 
 import core.grid;
@@ -15,46 +13,11 @@ import core.pathfinding;
 
 using namespace core;
 
-// Indique si to est atteignable depuis from en se déplaçant sur les cases praticables
-// (parcours en largeur, 4 directions).
-// grid : carte ; from, to : cases de départ et d'arrivée.
+// Indique si to est atteignable en marchant depuis from (portée illimitée, via core::ReachableTiles,
+// qui n'inclut pas la case de départ)
 static bool IsReachable(const Grid& grid, const GridPos from, const GridPos to) {
-    if (!grid.IsWalkable(from) || !grid.IsWalkable(to)) {
-        return false;
-    }
-    const auto width = grid.GetWidth();
-    auto visited = std::vector<bool>(static_cast<std::size_t>(width * grid.GetHeight()), false);
-    auto toVisit = std::queue<GridPos>{};
-    toVisit.push(from);
-    visited[static_cast<std::size_t>(from.y * width + from.x)] = true;
-
-    constexpr auto directions = std::array<GridPos, 4>{{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}};
-    while (!toVisit.empty()) {
-        const auto current = toVisit.front();
-        toVisit.pop();
-        if (current == to) {
-            return true;
-        }
-        for (const auto& direction : directions) {
-            const auto next = GridPos{current.x + direction.x, current.y + direction.y};
-            if (grid.IsWalkable(next) && !visited[static_cast<std::size_t>(next.y * width + next.x)]) {
-                visited[static_cast<std::size_t>(next.y * width + next.x)] = true;
-                toVisit.push(next);
-            }
-        }
-    }
-    return false;
-}
-
-// Compte le nombre de tuiles d'un type donné dans la grille
-static int CountTiles(const Grid& grid, const TileType type) {
-    auto count = 0;
-    for (const auto tile : grid.GetTiles()) {
-        if (tile == type) {
-            ++count;
-        }
-    }
-    return count;
+    const auto reachable = ReachableTiles(grid, from, grid.GetWidth() * grid.GetHeight());
+    return from == to || std::ranges::find(reachable, to) != reachable.end();
 }
 
 TEST_CASE("Room conserve sa position et ses dimensions", "[room]") {
@@ -148,7 +111,7 @@ TEST_CASE("Le depart est sur du sol et l'escalier est unique et accessible", "[d
 
     REQUIRE(dungeon.grid.GetTile(dungeon.playerStart) == TileType::Floor);
     REQUIRE(dungeon.grid.GetTile(dungeon.stairs) == TileType::Stairs);
-    REQUIRE(CountTiles(dungeon.grid, TileType::Stairs) == 1);
+    REQUIRE(std::ranges::count(dungeon.grid.GetTiles(), TileType::Stairs) == 1);
     REQUIRE_FALSE(dungeon.playerStart == dungeon.stairs);
     REQUIRE(IsReachable(dungeon.grid, dungeon.playerStart, dungeon.stairs));
 }
