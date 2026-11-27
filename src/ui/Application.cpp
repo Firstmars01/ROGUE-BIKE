@@ -42,7 +42,7 @@ namespace ui {
         hoveredTile = dungeon.grid.IsWalkable(cell) ? std::optional{cell} : std::nullopt;
 
         // Clic gauche : téléportation si la case est dans la zone (validée par core)
-        if (hoveredTile && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && player.TryMoveTo(dungeon.grid, *hoveredTile, ObstacleTiles())) {
+        if (hoveredTile && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && player.TryMoveTo(dungeon.grid, *hoveredTile, ObstacleTiles(), false)) {
             UpdateReachableTiles();
         }
         if (IsKeyPressed(KEY_R)) {
@@ -83,7 +83,7 @@ namespace ui {
     std::vector<std::unique_ptr<core::Enemy>> Application::CreateEnemies(const core::Dungeon& dungeon) {
         auto created = std::vector<std::unique_ptr<core::Enemy>>{};
         for (const auto& spawn : dungeon.enemySpawns) {
-            created.push_back(std::make_unique<core::Enemy>(spawn));
+            created.push_back(std::make_unique<core::Enemy>(spawn.position, spawn.kind));
         }
         return created;
     }

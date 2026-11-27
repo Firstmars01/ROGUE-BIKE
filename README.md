@@ -33,7 +33,7 @@ Le joueur, un motard, parcourt des quartiers générés procéduralement (places
 │   │   ├── Grid.ixx / Grid.cpp                         # core.grid : GridPos, Direction, TileType, Grid
 │   │   ├── Attacks.ixx / Attacks.cpp                   # core.attacks : Attack, zones d'effet, ligne de vue, Cooldown
 │   │   ├── Pathfinding.ixx / Pathfinding.cpp           # core.pathfinding : ReachableTiles (parcours en largeur)
-│   │   ├── Entities.ixx / Entities.cpp                 # core.entities : Entity (abstraite), Player, Enemy, Boss
+│   │   ├── Entities.ixx / Entities.cpp                 # core.entities : Entity -> Player ; Entity -> Hostile -> Enemy, Boss
 │   │   └── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : Room, Dungeon, génération
 │   ├── ui/                 # Bibliothèque rogueUi : affichage et entrées (seule partie qui utilise raylib)
 │   │   ├── IsoMath.ixx                       # ui.isoMath : projection grille <-> écran (constexpr)
@@ -100,11 +100,11 @@ python tools/GenerateSprites.py
 
 ### Entités (repères provisoires en attendant les sprites)
 
-| Entité | Repère | PV | Attaque | Règles |
+| Entité | Repère | PV | Attaques | Règles |
 |---|---|---|---|---|
-| Joueur (motard) | Point bleu, barre verte | 100 | 5 | Part de la plaque d'égout ; se déplace d'au plus `speed` = 4 cases en marchant |
-| Ennemi (voyou) | Point rouge, barre rouge | 75 | 3 | 2 à 5 par salle selon sa surface (5x5 : 2, 10x10 : 5) ; jamais dans la salle de départ ni dans celle du boss |
-| Boss (chef de gang) | Gros point rouge foncé, barre large | 1000 | 8 | Occupe 2x2 cases, collé à la bouche de métro du côté d'où arrive le couloir ; seul dans sa salle (au moins 8x8) |
+| Joueur (motard) | Point bleu, barre verte | 100 | Casque, Klaxon, Cocktail | Part de la plaque d'égout ; se déplace d'au plus `speed` = 4 cases en marchant |
+| Ennemi (voyou rapide ou costaud, au hasard) | Point rouge, barre rouge | 75 | Couteau (rapide) ou Batte (costaud) | 2 à 5 par salle selon sa surface (5x5 : 2, 10x10 : 5) ; jamais dans la salle de départ ni dans celle du boss |
+| Boss (chef de gang) | Gros point rouge foncé, barre large | 1000 | Onde de choc | Occupe 2x2 cases, collé à la bouche de métro du côté d'où arrive le couloir ; seul dans sa salle (au moins 8x8) |
 
 - La zone de déplacement du joueur s'affiche en bleu : cases atteignables en marchant (murs contournés) en au plus 4 pas.
 - Les ennemis et le boss sont des obstacles : le joueur ne peut ni s'arrêter sur leurs cases ni passer à travers. La sortie reste toujours accessible en contournant le boss.
@@ -122,7 +122,7 @@ python tools/GenerateSprites.py
 - Un immeuble qui cache le joueur, un ennemi, le boss ou la case visée devient à moitié transparent.
 - Le quartier de démo est toujours le même (graine fixe `dungeonSeed` dans `core.config`).
 
-### Attaques (module `core.attacks`, pas encore utilisées en jeu)
+### Attaques (modules `core.attacks` et `core.entities`, pas encore utilisées en jeu)
 
 Portée et zones carrées mesurées en cases, diagonales comprises (distance de Tchebychev). Les murs bloquent la ligne de vue et la zone d'effet. Temps en secondes (`std::chrono`).
 
@@ -134,6 +134,9 @@ Portée et zones carrées mesurées en cases, diagonales comprises (distance de 
 | Ennemi rapide | Couteau | autour de lui | carré de rayon 1 | 8 | 2 s | - |
 | Ennemi lourd | Batte | autour de lui | carré de rayon 2 | 25 | 5 s | - |
 | Boss | Onde de choc | autour de lui | carré de rayon 3 | 40 | 4 s | - |
+
+- Joueur : chaque attaque a son propre cooldown ; après une attaque, il est immobilisé (colonne Immobilisation). En combat, deux déplacements sont espacés d'au moins 0,6 s.
+- Ennemis et boss (`Hostile`) : immobiles, leur compteur ne démarre qu'une fois activés ; à 0, ils frappent leur zone puis le compteur repart.
 
 ### Tests
 

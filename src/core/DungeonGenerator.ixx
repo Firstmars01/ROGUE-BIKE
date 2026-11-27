@@ -45,6 +45,14 @@ export namespace core {
         int height{};
     };
 
+    // Ennemi à placer : case de départ et type
+    struct EnemySpawn {
+        GridPos position;
+        EnemyKind kind;
+
+        bool operator==(const EnemySpawn&) const = default;
+    };
+
     // Étage généré
     struct Dungeon {
         Grid grid;                // Carte
@@ -52,7 +60,7 @@ export namespace core {
         GridPos playerStart;      // Départ (centre de la première salle)
         GridPos stairs;           // Sortie (centre de la dernière salle, la salle du boss)
         GridPos bossPosition;     // Case en haut à gauche du boss, devant la sortie
-        std::vector<GridPos> enemySpawns;  // Ennemis (ni dans la salle de départ, ni dans celle du boss)
+        std::vector<EnemySpawn> enemySpawns;  // Ennemis (ni dans la salle de départ, ni dans celle du boss)
     };
 
     // Indique si pos appartient à l'une des salles
@@ -116,9 +124,9 @@ export namespace core {
         // Renvoie true si au moins un mur a été remplacé.
         static bool ThinDoubleWalls(Grid& grid, const std::vector<Room>& rooms);
 
-        // Choisit au hasard les cases des ennemis : EnemyCountFor(salle) cases distinctes par salle,
-        // sauf la première (départ) et la dernière (boss)
-        std::vector<GridPos> PlaceEnemies(const std::vector<Room>& rooms);
+        // Choisit au hasard les ennemis : EnemyCountFor(salle) cases distinctes par salle,
+        // sauf la première (départ) et la dernière (boss), puis un type au hasard pour chacun
+        std::vector<EnemySpawn> PlaceEnemies(const std::vector<Room>& rooms);
 
         // Indique si une des 8 cases voisines de pos est praticable
         static bool HasWalkableNeighbour(const Grid& grid, const GridPos pos);

@@ -108,8 +108,8 @@ namespace core {
         return minEnemiesPerRoom + (area - minArea) * (maxEnemiesPerRoom - minEnemiesPerRoom) / (maxArea - minArea);
     }
 
-    std::vector<GridPos> DungeonGenerator::PlaceEnemies(const std::vector<Room>& rooms) {
-        auto spawns = std::vector<GridPos>{};
+    std::vector<EnemySpawn> DungeonGenerator::PlaceEnemies(const std::vector<Room>& rooms) {
+        auto positions = std::vector<GridPos>{};
         // Ni la salle de départ (première) ni la salle du boss (dernière)
         for (auto index = std::size_t{1}; index + 1 < rooms.size(); ++index) {
             const auto& room = rooms[index];
@@ -122,7 +122,12 @@ namespace core {
             }
             std::ranges::shuffle(candidates, random);
             const auto count = std::min(static_cast<std::size_t>(EnemyCountFor(room)), candidates.size());
-            spawns.insert(spawns.end(), candidates.begin(), candidates.begin() + static_cast<std::ptrdiff_t>(count));
+            positions.insert(positions.end(), candidates.begin(), candidates.begin() + static_cast<std::ptrdiff_t>(count));
+        }
+        // Types tirés après toutes les positions : les positions ne dépendent pas de ce tirage
+        auto spawns = std::vector<EnemySpawn>{};
+        for (const auto& position : positions) {
+            spawns.push_back(EnemySpawn{position, RandomInt(0, 1) == 0 ? EnemyKind::Fast : EnemyKind::Heavy});
         }
         return spawns;
     }

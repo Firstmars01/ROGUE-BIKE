@@ -188,14 +188,27 @@ TEST_CASE("Les ennemis sont places dans les salles selon les regles", "[enemies]
 
     for (auto i = std::size_t{0}; i < spawns.size(); ++i) {
         // Sur du sol, jamais dans la salle de départ ni dans celle du boss
-        REQUIRE(dungeon.grid.GetTile(spawns[i]) == TileType::Floor);
-        REQUIRE_FALSE(rooms.front().Contains(spawns[i]));
-        REQUIRE_FALSE(rooms.back().Contains(spawns[i]));
+        REQUIRE(dungeon.grid.GetTile(spawns[i].position) == TileType::Floor);
+        REQUIRE_FALSE(rooms.front().Contains(spawns[i].position));
+        REQUIRE_FALSE(rooms.back().Contains(spawns[i].position));
         // Jamais deux ennemis sur la même case
         for (auto j = i + 1; j < spawns.size(); ++j) {
-            REQUIRE_FALSE(spawns[i] == spawns[j]);
+            REQUIRE_FALSE(spawns[i].position == spawns[j].position);
         }
     }
+}
+
+TEST_CASE("Les deux types d'ennemis apparaissent, tires au hasard", "[enemies]") {
+    auto fastCount = 0;
+    auto heavyCount = 0;
+    for (auto seed = 0u; seed < 20u; ++seed) {
+        auto generator = DungeonGenerator{seed};
+        for (const auto& spawn : generator.Generate(60, 45).enemySpawns) {
+            (spawn.kind == EnemyKind::Fast ? fastCount : heavyCount) += 1;
+        }
+    }
+    REQUIRE(fastCount > 0);
+    REQUIRE(heavyCount > 0);
 }
 
 TEST_CASE("La salle du boss est assez grande et contient la sortie", "[boss]") {
