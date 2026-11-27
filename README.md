@@ -39,7 +39,8 @@ Le joueur, un motard, parcourt des quartiers générés procéduralement (places
 │   ├── ui/                 # Bibliothèque rogueUi : affichage et entrées (seule partie qui utilise raylib)
 │   │   ├── IsoMath.ixx                       # ui.isoMath : projection grille <-> écran (constexpr)
 │   │   ├── Window.ixx / Window.cpp           # ui.window : fenêtre RAII + canevas virtuel 1920x1080
-│   │   ├── Renderer.ixx / Renderer.cpp       # ui.renderer : sprites (RAII), ordre du peintre, repères
+│   │   ├── Renderer.ixx / Renderer.cpp       # ui.renderer : sprites (RAII), ordre du peintre, repères, surcouches
+│   │   ├── Hud.ixx / Hud.cpp                 # ui.hud : barre des attaques (boutons, cooldowns)
 │   │   └── Application.ixx / Application.cpp # ui.application : boucle, entrées, affichage d'une core::Game
 │   └── main.cpp            # Point d'entrée : crée l'application et la lance
 └── tests/                  # Tests unitaires Catch2 (logique du jeu + projection isométrique)
@@ -91,7 +92,10 @@ python tools/GenerateSprites.py
 | Action | Effet |
 |---|---|
 | Survol de la souris | La case visée est éclaircie |
-| Clic gauche sur une case bleue | Le joueur s'y téléporte (un clic hors de la zone ne fait rien) |
+| Clic gauche sur une case bleue (aucune attaque choisie) | Le joueur s'y téléporte (un clic hors de la zone ne fait rien) |
+| `1`, `2`, `3` ou clic sur un bouton en bas | Choisit le Coup de casque, le Klaxon ou le Cocktail (un second appui annule) |
+| Clic gauche avec une attaque choisie | Attaque la case visée (le Klaxon frappe toujours autour du joueur) ; retour au déplacement si l'attaque part |
+| Clic droit | Annule l'attaque choisie |
 | `R` | Génère le quartier suivant (graine + 1) et replace tout le monde |
 | `Échap` ou la croix | Quitte le jeu |
 
@@ -141,7 +145,12 @@ Portée et zones carrées mesurées en cases, diagonales comprises (distance de 
 - Ennemis et boss (`Hostile`) : immobiles, leur compteur démarre quand le joueur entre dans leur salle (ou quand il les touche de loin) ; à 0, ils frappent leur zone puis le compteur repart.
 - Après chaque frappe, l'adversaire saute sur une case de sol libre de sa salle, à 3 cases au plus (jamais sur le joueur, un autre adversaire ou la sortie), en visant une distance au joueur qui lui permet de le toucher : 1 case pour le rapide, 2 pour le costaud, 3 pour le boss (qui saute avec ses 4 cases). Parmi les meilleures cases, le choix est tiré au hasard (reproductible avec la même graine).
 - `core::Game::Update(dt)` fait avancer la partie à chaque image (temps réel) : minuteries, activation, frappes, retrait des morts (`std::erase_if`), fin de partie (`GameState::GameOver`, sans écran pour l'instant).
-- Les adversaires attaquent déjà en jeu ; les commandes d'attaque du joueur (touches 1/2/3 et boutons) arrivent avec l'affichage du combat.
+- Affichage du combat :
+  - barre d'attaques en bas : nom, touche, dégâts ou temps restant, voile gris qui descend avec le cooldown, attaque choisie encadrée en jaune ;
+  - attaque choisie : cases visables en orange, zone touchée sous la souris en rouge vif (même règle que l'attaque réelle) ;
+  - adversaires actifs : temps avant leur prochaine frappe au-dessus de leur barre de vie ; leur zone de frappe s'affiche en rouge pendant la dernière seconde ;
+  - joueur immobilisé après une attaque : son repère devient gris.
+- Une attaque à distance ne peut jamais viser la case du joueur ; une attaque de portée 0 ne vise que lui.
 
 ### Tests
 

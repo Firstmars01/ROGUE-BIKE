@@ -5,6 +5,8 @@ import std;
 
 module ui.renderer;
 
+import core.attacks;
+
 namespace ui {
 
     // Texture raylib en RAII : chargée à la construction, libérée à la destruction
@@ -79,18 +81,33 @@ namespace ui {
         };
 
         constexpr MarkerStyle playerStyle{{60, 140, 230, 255}, {20, 40, 80, 255}, {70, 200, 90, 255}, 6.0f, 8.0f, 20.0f};
+        constexpr MarkerStyle lockedPlayerStyle{{140, 145, 160, 255}, {20, 40, 80, 255}, {70, 200, 90, 255}, 6.0f, 8.0f, 20.0f};
         constexpr MarkerStyle enemyStyle{{220, 50, 50, 255}, {90, 15, 15, 255}, {220, 50, 50, 255}, 6.0f, 8.0f, 20.0f};
         constexpr MarkerStyle bossStyle{{110, 15, 20, 255}, {50, 5, 8, 255}, {220, 50, 50, 255}, 14.0f, 14.0f, 40.0f};
 
         constexpr Color healthBackgroundColor{30, 20, 20, 220};
         constexpr float healthBarHeight{3.0f};
         constexpr float healthBarGap{4.0f};       // Espace entre le cercle et la barre
+        constexpr int countdownFontSize{10};
+        constexpr float countdownGap{2.0f};       // Espace entre la barre de vie et le compteur
 
         // Surcouches des cases praticables (semi-transparentes)
         constexpr Color gridLineColor{255, 255, 255, 40};
         constexpr Color reachableColor{70, 150, 255, 90};
         constexpr Color hoveredReachableColor{150, 215, 255, 170};
+        constexpr Color attackTargetColor{255, 160, 40, 80};
+        constexpr Color dangerColor{220, 40, 40, 110};
+        constexpr Color attackAreaColor{255, 70, 40, 190};
         constexpr Color hoveredColor{255, 255, 255, 60};
+
+        // Surcouches présentes sur une case
+        struct TileLayers {
+            bool reachable;
+            bool attackTarget;
+            bool danger;
+            bool attackArea;
+            bool hovered;
+        };
 
         // Un immeuble (32 px) recouvre 2 rangées de cases derrière lui
         constexpr int buildingRowsCovered{2};
@@ -109,8 +126,28 @@ namespace ui {
             }
         }
 
-        // Dessine les surcouches d'une case praticable : quadrillage, zone de déplacement, survol
-        void DrawTileOverlays(const ScreenPos center, const bool reachable, const bool hovered) {
+        // Renvoie la couleur de remplissage d'une case selon la surcouche la plus importante, ou std::nullopt
+        std::optional<Color> OverlayColor(const TileLayers& layers) {
+            if (layers.attackArea) {
+                return attackAreaColor;
+            }
+            if (layers.danger) {
+                return dangerColor;
+            }
+            if (layers.attackTarget) {
+                return attackTargetColor;
+            }
+            if (layers.reachable) {
+                return layers.hovered ? hoveredReachableColor : reachableColor;
+            }
+            if (layers.hovered) {
+                return hoveredColor;
+            }
+            return std::nullopt;
+        }
+
+        // Dessine les surcouches d'une case praticable : quadrillage puis remplissage éventuel
+        void DrawTileOverlays(const ScreenPos center, const TileLayers& layers) {
             const auto top = Vector2{center.x, center.y - halfTileHeight};
             const auto left = Vector2{center.x - halfTileWidth, center.y};
             const auto bottom = Vector2{center.x, center.y + halfTileHeight};
@@ -119,15 +156,16 @@ namespace ui {
             DrawLineV(left, bottom, gridLineColor);
             DrawLineV(bottom, right, gridLineColor);
             DrawLineV(right, top, gridLineColor);
-            if (reachable || hovered) {
-                const auto fill = reachable ? (hovered ? hoveredReachableColor : reachableColor) : hoveredColor;
-                FillTriangle(top, left, bottom, fill);
-                FillTriangle(top, bottom, right, fill);
+            if (const auto fill = OverlayColor(layers)) {
+                FillTriangle(top, left, bottom, *fill);
+                FillTriangle(top, bottom, right, *fill);
             }
         }
 
         // Dessine le repère de entity (style donné) posé sur ground, avec sa barre de vie
-        void DrawMarker(const ScreenPos ground, const core::Entity& entity, const MarkerStyle& style) {
+        // et, si countdown est fourni, le temps avant sa prochaine frappe au-dessus
+        void DrawMarker(const ScreenPos ground, const core::Entity& entity, const MarkerStyle& style,
+                        const std::optional<core::Seconds> countdown = std::nullopt) {
             const auto position = Vector2{ground.x, ground.y - style.elevation};
             DrawCircleV(position, style.radius, style.fill);
             DrawCircleLines(static_cast<int>(position.x), static_cast<int>(position.y), style.radius, style.outline);
@@ -138,6 +176,24 @@ namespace ui {
             DrawRectangleRec(Rectangle{left - 1.0f, top - 1.0f, style.healthBarWidth + 2.0f, healthBarHeight + 2.0f},
                              healthBackgroundColor);
             DrawRectangleRec(Rectangle{left, top, style.healthBarWidth * ratio, healthBarHeight}, style.health);
+
+            if (countdown) {
+                const auto text = std::format("{:.1f}", countdown->count());
+                const auto textWidth = static_cast<float>(MeasureText(text.c_str(), countdownFontSize));
+                DrawText(text.c_str(), static_cast<int>(position.x - textWidth / 2.0f),
+                         static_cast<int>(top - countdownGap - static_cast<float>(countdownFontSize)), countdownFontSize,
+                         RAYWHITE);
+            }
+        }
+
+        // Renvoie le compteur à afficher au-dessus d'un adversaire (seulement s'il est actif)
+        std::optional<core::Seconds> CountdownOf(const core::Hostile& hostile) {
+            return hostile.IsActive() ? std::optional{hostile.TimeBeforeStrike()} : std::nullopt;
+        }
+
+        // Indique si tiles contient pos
+        bool Contains(const std::vector<core::GridPos>& tiles, const core::GridPos pos) {
+            return std::ranges::find(tiles, pos) != tiles.end();
         }
 
         // Indique si un immeuble en building recouvre à l'écran la case target : cases (x - i, y - j)
@@ -230,21 +286,27 @@ namespace ui {
 
                 // Surcouches et entités juste après leur case : les immeubles placés devant les recouvrent
                 if (grid.IsWalkable(pos)) {
-                    const auto reachable = std::ranges::find(scene.reachableTiles, pos) != scene.reachableTiles.end();
-                    DrawTileOverlays(center, reachable, scene.hoveredTile == pos);
+                    DrawTileOverlays(center, TileLayers{
+                        Contains(scene.reachableTiles, pos),
+                        Contains(scene.attackTargets, pos),
+                        Contains(scene.dangerTiles, pos),
+                        Contains(scene.attackArea, pos),
+                        scene.hoveredTile == pos
+                    });
                 }
                 if (pos == scene.player.GetPosition()) {
-                    DrawMarker(center, scene.player, playerStyle);
+                    DrawMarker(center, scene.player, scene.player.IsLocked() ? lockedPlayerStyle : playerStyle);
                 }
                 for (const auto& enemy : scene.enemies) {
                     if (enemy->GetPosition() == pos) {
-                        DrawMarker(center, *enemy, enemyStyle);
+                        DrawMarker(center, *enemy, enemyStyle, CountdownOf(*enemy));
                     }
                 }
                 // Boss après sa dernière case, centré sur son carré (milieu de la première et de la dernière case)
                 if (scene.boss && pos == scene.boss->OccupiedTiles().back()) {
                     const auto first = GridToScreen(scene.boss->GetPosition(), origin);
-                    DrawMarker(ScreenPos{(first.x + center.x) / 2.0f, (first.y + center.y) / 2.0f}, *scene.boss, bossStyle);
+                    DrawMarker(ScreenPos{(first.x + center.x) / 2.0f, (first.y + center.y) / 2.0f}, *scene.boss, bossStyle,
+                               CountdownOf(*scene.boss));
                 }
             }
         }

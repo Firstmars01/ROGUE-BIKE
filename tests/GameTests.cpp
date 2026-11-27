@@ -263,3 +263,35 @@ TEST_CASE("En pleine melee, les adversaires restent dans leur salle sans jamais 
         }
     }
 }
+
+// ----- Requêtes pour l'affichage -----
+
+TEST_CASE("AttackTargets renvoie les cases visables avec chaque attaque", "[display]") {
+    auto dungeon = MakeArena(GridPos{10, 2}, {});
+    dungeon.grid.SetTile(GridPos{11, 2}, TileType::Wall);
+    const auto game = Game{std::move(dungeon), 1};
+
+    REQUIRE(game.AttackTargets(0).size() == 7);   // casque : 8 voisins moins le mur
+    REQUIRE(game.AttackTargets(1) == std::vector<GridPos>{GridPos{10, 2}});   // klaxon : sur soi
+    REQUIRE(game.AttackTargets(9).empty());       // attaque inexistante
+}
+
+TEST_CASE("AttackArea suit la meme regle que TryAttack", "[display]") {
+    const auto game = Game{MakeArena(GridPos{10, 2}, {}), 1};
+
+    REQUIRE(game.AttackArea(2, GridPos{13, 2}).size() == 5);   // cocktail : croix de rayon 1
+    REQUIRE(game.AttackArea(2, GridPos{16, 2}).empty());       // portée 6 : trop loin
+    REQUIRE(game.AttackArea(1, GridPos{11, 2}).empty());       // klaxon : seulement sur soi
+}
+
+TEST_CASE("ImminentStrikeTiles n'annonce que les frappes proches d'adversaires actifs", "[display]") {
+    auto game = Game{MakeArena(GridPos{9, 1}, {EnemySpawn{GridPos{12, 4}, EnemyKind::Fast}}), 1};
+    REQUIRE(game.ImminentStrikeTiles(Seconds{1.0f}).empty());   // pas encore actif
+
+    game.Update(Seconds{0.0f});                                  // actif, frappe dans 2 s
+    REQUIRE(game.ImminentStrikeTiles(Seconds{1.0f}).empty());
+    game.Update(Seconds{1.5f});                                  // frappe dans 0,5 s
+    const auto danger = game.ImminentStrikeTiles(Seconds{1.0f});
+    REQUIRE(danger == game.StrikeArea(*game.GetEnemies()[0]));
+    REQUIRE(danger.size() == 9);
+}

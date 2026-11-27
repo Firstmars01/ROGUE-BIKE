@@ -69,6 +69,16 @@ export namespace core {
         // Renvoie les cases que hostile frappe (zone autour de chacune de ses cases, murs respectés)
         std::vector<GridPos> StrikeArea(const Hostile& hostile) const;
 
+        // Renvoie les cases que le joueur peut viser avec l'attaque attackIndex (vide si index invalide)
+        std::vector<GridPos> AttackTargets(const std::size_t attackIndex) const;
+
+        // Renvoie les cases touchées par l'attaque attackIndex visant target,
+        // ou une liste vide si la cible n'est pas valide (même règle que TryAttack)
+        std::vector<GridPos> AttackArea(const std::size_t attackIndex, const GridPos target) const;
+
+        // Renvoie les cases que des adversaires actifs frapperont dans moins de warning
+        std::vector<GridPos> ImminentStrikeTiles(const Seconds warning) const;
+
     private:
         // Renvoie l'index de la salle qui contient pos, ou std::nullopt (couloir)
         std::optional<std::size_t> RoomOf(const GridPos pos) const;

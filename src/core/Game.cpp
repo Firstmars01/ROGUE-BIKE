@@ -59,16 +59,14 @@ namespace core {
     }
 
     bool Game::TryAttack(const std::size_t attackIndex, const GridPos target) {
-        if (state != GameState::Playing || attackIndex >= Player::attacks.size()) {
-            return false;
-        }
-        const auto& attack = Player::attacks[attackIndex];
-        if (!IsInRange(dungeon.grid, attack, player.GetPosition(), target) || !player.TryUseAttack(attackIndex)) {
+        // La zone est vide si l'index ou la cible n'est pas valide
+        const auto area = AttackArea(attackIndex, target);
+        if (state != GameState::Playing || area.empty() || !player.TryUseAttack(attackIndex)) {
             return false;
         }
 
         // Dégâts sur chaque adversaire touché (une seule fois, même s'il occupe plusieurs cases de la zone)
-        const auto area = AffectedTiles(dungeon.grid, attack, target);
+        const auto& attack = Player::attacks[attackIndex];
         const auto strike = [&area, &attack](Hostile& hostile) {
             if (IsHit(hostile, area)) {
                 hostile.TakeDamage(attack.damage);
@@ -129,6 +127,52 @@ namespace core {
             }
         }
         return area;
+    }
+
+    std::vector<GridPos> Game::AttackTargets(const std::size_t attackIndex) const {
+        auto targets = std::vector<GridPos>{};
+        if (attackIndex >= Player::attacks.size()) {
+            return targets;
+        }
+        const auto& attack = Player::attacks[attackIndex];
+        const auto origin = player.GetPosition();
+        for (auto dy = -attack.range; dy <= attack.range; ++dy) {
+            for (auto dx = -attack.range; dx <= attack.range; ++dx) {
+                const auto target = GridPos{origin.x + dx, origin.y + dy};
+                if (IsInRange(dungeon.grid, attack, origin, target)) {
+                    targets.push_back(target);
+                }
+            }
+        }
+        return targets;
+    }
+
+    std::vector<GridPos> Game::AttackArea(const std::size_t attackIndex, const GridPos target) const {
+        if (attackIndex >= Player::attacks.size()
+            || !IsInRange(dungeon.grid, Player::attacks[attackIndex], player.GetPosition(), target)) {
+            return {};
+        }
+        return AffectedTiles(dungeon.grid, Player::attacks[attackIndex], target);
+    }
+
+    std::vector<GridPos> Game::ImminentStrikeTiles(const Seconds warning) const {
+        auto tiles = std::vector<GridPos>{};
+        const auto add = [this, &tiles, warning](const Hostile& hostile) {
+            if (hostile.IsActive() && hostile.TimeBeforeStrike() <= warning) {
+                for (const auto& tile : StrikeArea(hostile)) {
+                    if (!Contains(tiles, tile)) {
+                        tiles.push_back(tile);
+                    }
+                }
+            }
+        };
+        for (const auto& enemy : enemies) {
+            add(*enemy);
+        }
+        if (boss) {
+            add(*boss);
+        }
+        return tiles;
     }
 
     std::optional<std::size_t> Game::RoomOf(const GridPos pos) const {

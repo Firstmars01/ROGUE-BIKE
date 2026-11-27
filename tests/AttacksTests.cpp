@@ -84,6 +84,7 @@ TEST_CASE("IsInRange verifie la portee, le sol et la ligne de vue", "[attacks]")
     REQUIRE(IsInRange(grid, helmetStrike, attacker, GridPos{1, 2}));    // voisin en diagonale
     REQUIRE(IsInRange(grid, hornBlast, attacker, attacker));            // portée 0 : sur soi
     REQUIRE_FALSE(IsInRange(grid, hornBlast, attacker, GridPos{1, 1}));
+    REQUIRE_FALSE(IsInRange(grid, helmetStrike, attacker, attacker));   // attaque à distance : jamais sur soi
 
     grid.SetTile(GridPos{2, 1}, TileType::Wall);
     REQUIRE_FALSE(IsInRange(grid, molotov, attacker, GridPos{4, 1}));   // derrière le mur

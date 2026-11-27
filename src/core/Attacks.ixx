@@ -48,7 +48,8 @@ export namespace core {
     // (to compris, from exclu). Les murs et le vide bloquent la vue.
     bool HasLineOfSight(const Grid& grid, const GridPos from, const GridPos to);
 
-    // Indique si attacker peut viser target avec attack : case praticable, à portée, en ligne de vue
+    // Indique si attacker peut viser target avec attack : case praticable, en ligne de vue, et à portée
+    // (une attaque de portée 0 ne vise que attacker ; une attaque à distance ne le vise jamais)
     bool IsInRange(const Grid& grid, const Attack& attack, const GridPos attacker, const GridPos target);
 
     // Renvoie les cases touchées par attack visant center : cases de la forme, praticables

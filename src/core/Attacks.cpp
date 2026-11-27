@@ -36,9 +36,10 @@ namespace core {
     }
 
     bool IsInRange(const Grid& grid, const Attack& attack, const GridPos attacker, const GridPos target) {
-        return grid.IsWalkable(target)
-               && ChebyshevDistance(attacker, target) <= attack.range
-               && HasLineOfSight(grid, attacker, target);
+        // Portée 0 : seulement sur soi ; sinon jamais sur soi, et au plus range cases
+        const auto distance = ChebyshevDistance(attacker, target);
+        const auto inReach = attack.range == 0 ? distance == 0 : distance >= 1 && distance <= attack.range;
+        return inReach && grid.IsWalkable(target) && HasLineOfSight(grid, attacker, target);
     }
 
     std::vector<GridPos> AffectedTiles(const Grid& grid, const Attack& attack, const GridPos center) {

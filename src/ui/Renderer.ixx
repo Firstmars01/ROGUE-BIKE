@@ -18,7 +18,10 @@ export namespace ui {
         const core::Player& player;
         const std::vector<std::unique_ptr<core::Enemy>>& enemies;
         const std::optional<core::Boss>& boss;              // Vide si le boss est mort
-        const std::vector<core::GridPos>& reachableTiles;   // Zone de déplacement du joueur
+        const std::vector<core::GridPos>& reachableTiles;   // Zone de déplacement du joueur (bleu)
+        const std::vector<core::GridPos>& attackTargets;    // Cases visables avec l'attaque choisie (orange)
+        const std::vector<core::GridPos>& attackArea;       // Zone touchée par l'attaque visée (rouge vif)
+        const std::vector<core::GridPos>& dangerTiles;      // Frappes imminentes des adversaires (rouge)
         std::optional<core::GridPos> hoveredTile;           // Case praticable sous la souris
     };
 
@@ -39,9 +42,9 @@ export namespace ui {
 
         // Dessine la scène dans l'ordre du peintre (x + y croissant) : pavés (salles), asphalte (couloirs),
         // immeubles (transparents s'ils cachent une entité ou la case visée) ou trottoirs (murs),
-        // plaque d'égout (départ), métro (sortie), quadrillage,
-        // zone de déplacement en bleu, case survolée éclaircie, joueur (point bleu), ennemis (points rouges),
-        // boss (gros point rouge foncé centré sur ses 2x2 cases), barre de vie au-dessus de chaque entité.
+        // plaque d'égout (départ), métro (sortie), quadrillage, surcouches de la scène (déplacement,
+        // visée, zones de frappe, survol), joueur (point bleu, gris s'il est immobilisé), ennemis (points rouges),
+        // boss (gros point rouge foncé sur ses 2x2 cases), barre de vie et compteur de frappe des adversaires.
         // À appeler entre Window::BeginFrame() et Window::EndFrame().
         void DrawScene(const SceneView& scene) const;
 
