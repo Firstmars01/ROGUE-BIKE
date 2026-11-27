@@ -52,6 +52,39 @@ TEST_CASE("ScreenToGrid trouve la case pour un point proche du bord du losange",
     REQUIRE(ScreenToGrid(ScreenPos{center.x + halfTileWidth + 2.0f, center.y}, origin) == GridPos{4, 1});
 }
 
+TEST_CASE("Camera : zoom x1 sans decalage, le monde est affiche tel quel", "[camera]") {
+    constexpr auto center = ScreenPos{960.0f, 540.0f};
+    constexpr auto view = CameraView{center, center, 1.0f};
+    STATIC_REQUIRE(WorldToScreen(ScreenPos{100.0f, 200.0f}, view) == ScreenPos{100.0f, 200.0f});
+    STATIC_REQUIRE(ScreenToWorld(ScreenPos{100.0f, 200.0f}, view) == ScreenPos{100.0f, 200.0f});
+}
+
+TEST_CASE("Camera : le point suivi est au centre et les distances sont multipliees par le zoom", "[camera]") {
+    constexpr auto view = CameraView{ScreenPos{300.0f, 400.0f}, ScreenPos{960.0f, 540.0f}, 3.0f};
+    STATIC_REQUIRE(WorldToScreen(ScreenPos{300.0f, 400.0f}, view) == ScreenPos{960.0f, 540.0f});
+    STATIC_REQUIRE(WorldToScreen(ScreenPos{310.0f, 400.0f}, view) == ScreenPos{990.0f, 540.0f});
+
+    // Aller-retour écran -> monde -> écran
+    const auto screen = ScreenPos{1234.0f, 321.0f};
+    const auto back = WorldToScreen(ScreenToWorld(screen, view), view);
+    REQUIRE(back.x == Catch::Approx(screen.x));
+    REQUIRE(back.y == Catch::Approx(screen.y));
+}
+
+TEST_CASE("Camera : la case sous la souris reste juste avec le zoom", "[camera]") {
+    constexpr auto origin = ScreenPos{840.0f, 128.0f};
+    const auto focus = GridToScreen(GridPos{20, 15}, origin);
+    const auto view = CameraView{focus, ScreenPos{960.0f, 540.0f}, 4.0f};
+
+    // Le centre de chaque case, affiché à travers la caméra, redonne bien cette case
+    for (auto y = 10; y < 20; ++y) {
+        for (auto x = 15; x < 25; ++x) {
+            const auto screen = WorldToScreen(GridToScreen(GridPos{x, y}, origin), view);
+            REQUIRE(ScreenToGrid(ScreenToWorld(screen, view), origin) == GridPos{x, y});
+        }
+    }
+}
+
 TEST_CASE("CenteredOrigin centre la carte dans la fenetre", "[isoMath]") {
     constexpr auto mapWidth = 60;
     constexpr auto mapHeight = 45;

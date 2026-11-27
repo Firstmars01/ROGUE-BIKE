@@ -260,16 +260,45 @@ namespace ui {
     Renderer::Renderer(const int mapWidth, const int mapHeight, const int screenWidth, const int screenHeight,
                        const std::filesystem::path& spritesDirectory)
         : origin{CenteredOrigin(mapWidth, mapHeight, screenWidth, screenHeight)},
+          screenCenter{static_cast<float>(screenWidth) / 2.0f, static_cast<float>(screenHeight) / 2.0f},
           sprites{std::make_unique<Sprites>(spritesDirectory)} {}
 
     // Défini ici : Sprites n'est complet que dans ce fichier
     Renderer::~Renderer() = default;
 
-    core::GridPos Renderer::CellAt(const ScreenPos screen) const noexcept {
-        return ScreenToGrid(screen, origin);
+    void Renderer::ZoomIn() noexcept {
+        zoom = std::min(zoom + 1, maxZoom);
+    }
+
+    void Renderer::ZoomOut() noexcept {
+        zoom = std::max(zoom - 1, minZoom);
+    }
+
+    int Renderer::GetZoom() const noexcept {
+        return zoom;
+    }
+
+    core::GridPos Renderer::CellAt(const ScreenPos screen, const core::GridPos focus) const noexcept {
+        return ScreenToGrid(ScreenToWorld(screen, View(focus)), origin);
+    }
+
+    CameraView Renderer::View(const core::GridPos focus) const noexcept {
+        if (zoom == minZoom) {
+            // Vue fixe : le monde est affiché tel quel
+            return CameraView{screenCenter, screenCenter, 1.0f};
+        }
+        return CameraView{GridToScreen(focus, origin), screenCenter, static_cast<float>(zoom)};
     }
 
     void Renderer::DrawScene(const SceneView& scene) const {
+        // Tout le monde est dessiné à travers la caméra
+        const auto view = View(scene.player.GetPosition());
+        BeginMode2D(Camera2D{Vector2{view.offset.x, view.offset.y}, Vector2{view.target.x, view.target.y}, 0.0f, view.zoom});
+        DrawWorld(scene);
+        EndMode2D();
+    }
+
+    void Renderer::DrawWorld(const SceneView& scene) const {
         const auto& dungeon = scene.dungeon;
         const auto& grid = dungeon.grid;
         const auto importantTiles = ImportantTiles(scene);

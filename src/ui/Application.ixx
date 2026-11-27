@@ -23,8 +23,8 @@ export namespace ui {
         void Run();
 
     private:
-        // Clavier et souris : choix d'une attaque (1/2/3 ou boutons), visée et attaque (clic gauche),
-        // annulation (clic droit), déplacement (clic gauche sans attaque choisie), nouvelle partie (R)
+        // Clavier et souris : zoom (molette), choix d'une attaque (1/2/3 ou boutons), visée et attaque
+        // (clic gauche), annulation (clic droit), déplacement (clic gauche sans attaque choisie), nouvelle partie (R)
         void HandleInput();
 
         // Choisit l'attaque index, ou la désélectionne si elle l'était déjà

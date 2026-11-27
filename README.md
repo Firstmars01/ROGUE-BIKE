@@ -37,7 +37,7 @@ Le joueur, un motard, parcourt des quartiers générés procéduralement (places
 │   │   ├── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : Room, Dungeon, génération
 │   │   └── Game.ixx / Game.cpp                         # core.game : règles d'une partie en temps réel
 │   ├── ui/                 # Bibliothèque rogueUi : affichage et entrées (seule partie qui utilise raylib)
-│   │   ├── IsoMath.ixx                       # ui.isoMath : projection grille <-> écran (constexpr)
+│   │   ├── IsoMath.ixx                       # ui.isoMath : projection grille <-> écran, caméra (constexpr)
 │   │   ├── Window.ixx / Window.cpp           # ui.window : fenêtre RAII + canevas virtuel 1920x1080
 │   │   ├── Renderer.ixx / Renderer.cpp       # ui.renderer : sprites (RAII), ordre du peintre, repères, surcouches
 │   │   ├── Hud.ixx / Hud.cpp                 # ui.hud : barre des attaques (boutons, cooldowns)
@@ -96,13 +96,15 @@ python tools/GenerateSprites.py
 | `1`, `2`, `3` ou clic sur un bouton en bas | Choisit le Coup de casque, le Klaxon ou le Cocktail (un second appui annule) |
 | Clic gauche avec une attaque choisie | Attaque la case visée (le Klaxon frappe toujours autour du joueur) ; retour au déplacement si l'attaque part |
 | Clic droit | Annule l'attaque choisie |
+| Molette | Zoom par paliers x1 à x4 (x1 : vue fixe de toute la carte ; à partir de x2 : caméra centrée sur le joueur) |
 | `R` | Génère le quartier suivant (graine + 1) et replace tout le monde |
 | `Échap` ou la croix | Quitte le jeu |
 
 ### Affichage
 
 - Plein écran sans bordure. Le jeu est dessiné sur un canevas fixe de 1920x1080, mis à l'échelle et centré si l'écran a une autre taille ; la souris est convertie de la même façon.
-- Caméra fixe montrant toute la carte. La graine courante et l'aide sont affichées en haut à gauche.
+- Caméra : au lancement (zoom x1), vue fixe de toute la carte ; à partir de x2, la caméra se recentre instantanément sur le joueur. Paliers entiers pour garder le pixel art net. La barre d'attaques et l'aide ne sont pas zoomées.
+- La graine, le zoom courant et l'aide sont affichés en haut à gauche.
 
 ### Entités
 

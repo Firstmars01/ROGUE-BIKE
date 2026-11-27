@@ -42,8 +42,15 @@ namespace ui {
         // Ce qui est sous la souris : un bouton d'attaque, sinon une case praticable
         const auto mouse = window.MousePosition();
         hoveredButton = AttackButtonAt(mouse);
-        const auto cell = renderer.CellAt(mouse);
+        const auto cell = renderer.CellAt(mouse, game.GetPlayer().GetPosition());
         hoveredTile = !hoveredButton && game.GetDungeon().grid.IsWalkable(cell) ? std::optional{cell} : std::nullopt;
+
+        // Molette : zoom par paliers
+        if (const auto wheel = GetMouseWheelMove(); wheel > 0.0f) {
+            renderer.ZoomIn();
+        } else if (wheel < 0.0f) {
+            renderer.ZoomOut();
+        }
 
         for (auto index = std::size_t{0}; index < attackKeys.size(); ++index) {
             if (IsKeyPressed(attackKeys[index])) {
@@ -102,8 +109,9 @@ namespace ui {
         DrawAttackBar(game.GetPlayer(), selectedAttack);
 
         // Sans accents : la police par défaut de raylib ne les gère pas
-        const auto help = std::format("Graine : {}   |   Clic gauche : se deplacer / attaquer   |   1-2-3 : choisir une attaque"
-                                      "   |   Clic droit : annuler   |   R : nouveau donjon   |   Echap : quitter", seed);
+        const auto help = std::format("Graine : {}   |   Zoom : x{} (molette)   |   Clic gauche : se deplacer / attaquer"
+                                      "   |   1-2-3 : choisir une attaque   |   Clic droit : annuler   |   R : nouveau donjon"
+                                      "   |   Echap : quitter", seed, renderer.GetZoom());
         DrawText(help.c_str(), helpMargin, helpMargin, helpFontSize, RAYWHITE);
     }
 

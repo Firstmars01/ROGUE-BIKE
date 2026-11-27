@@ -40,7 +40,8 @@ export namespace ui {
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
 
-        // Dessine la scène dans l'ordre du peintre (x + y croissant) : pavés (salles), asphalte (couloirs),
+        // Dessine la scène à travers la caméra (zoom, centrée sur le joueur à partir de x2),
+        // dans l'ordre du peintre (x + y croissant) : pavés (salles), asphalte (couloirs),
         // immeubles (transparents s'ils cachent une entité ou la case visée) ou trottoirs (murs),
         // plaque d'égout (départ), métro (sortie), quadrillage, surcouches de la scène (déplacement,
         // visée, zones de frappe, survol), personnages (motard, grisé s'il est immobilisé ; voyous en trottinette
@@ -49,14 +50,36 @@ export namespace ui {
         // À appeler entre Window::BeginFrame() et Window::EndFrame().
         void DrawScene(const SceneView& scene) const;
 
-        // Renvoie la case située sous le point screen (peut être hors de la carte)
-        core::GridPos CellAt(const ScreenPos screen) const noexcept;
+        // Paliers de zoom : x1 = vue fixe de toute la carte ; à partir de x2, caméra centrée sur le joueur
+        static constexpr int minZoom{1};
+        static constexpr int maxZoom{4};
+
+        // Augmente le zoom d'un palier (sans dépasser maxZoom)
+        void ZoomIn() noexcept;
+
+        // Diminue le zoom d'un palier (sans descendre sous minZoom)
+        void ZoomOut() noexcept;
+
+        // Renvoie le palier de zoom actuel
+        int GetZoom() const noexcept;
+
+        // Renvoie la case située sous le point screen (coordonnées du canevas), en tenant compte du zoom ;
+        // focus : case suivie par la caméra (le joueur). Le résultat peut être hors de la carte.
+        core::GridPos CellAt(const ScreenPos screen, const core::GridPos focus) const noexcept;
 
     private:
         // Textures chargées (définies dans Renderer.cpp)
         struct Sprites;
 
+        // Renvoie la vue de la caméra : fixe à x1, centrée sur la case focus à partir de x2
+        CameraView View(const core::GridPos focus) const noexcept;
+
+        // Dessine la scène en coordonnées du monde (appelée entre BeginMode2D et EndMode2D)
+        void DrawWorld(const SceneView& scene) const;
+
         ScreenPos origin{};
+        ScreenPos screenCenter{};
+        int zoom{minZoom};
         std::unique_ptr<Sprites> sprites;
     };
 

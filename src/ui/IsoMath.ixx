@@ -30,6 +30,29 @@ export namespace ui {
         };
     }
 
+    // Caméra 2D : le point target du monde est affiché au point offset de l'écran, agrandi zoom fois
+    struct CameraView {
+        ScreenPos target;
+        ScreenPos offset;
+        float zoom;
+    };
+
+    // Renvoie la position à l'écran du point world vu par view
+    constexpr ScreenPos WorldToScreen(const ScreenPos world, const CameraView& view) noexcept {
+        return ScreenPos{
+            (world.x - view.target.x) * view.zoom + view.offset.x,
+            (world.y - view.target.y) * view.zoom + view.offset.y
+        };
+    }
+
+    // Renvoie le point du monde affiché au point screen (inverse de WorldToScreen ; zoom > 0)
+    constexpr ScreenPos ScreenToWorld(const ScreenPos screen, const CameraView& view) noexcept {
+        return ScreenPos{
+            (screen.x - view.offset.x) / view.zoom + view.target.x,
+            (screen.y - view.offset.y) / view.zoom + view.target.y
+        };
+    }
+
     // Renvoie le plus grand entier <= value (std::floor n'est pas constexpr partout)
     constexpr int FloorToInt(const float value) noexcept {
         const auto truncated = static_cast<int>(value);
