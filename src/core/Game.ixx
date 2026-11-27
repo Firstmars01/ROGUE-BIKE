@@ -22,11 +22,15 @@ export namespace core {
     // Partie : possède l'étage, le joueur, les ennemis et le boss
     class Game {
     public:
+        // Distance maximale (en cases, diagonales comprises) d'un saut d'adversaire après une frappe
+        static constexpr int maxHostileJump{3};
+
         // Génère un étage width x height avec seed et place toutes les entités
         Game(const std::uint32_t seed, const int width, const int height);
 
-        // Place les entités sur un étage déjà construit (utile pour les tests)
-        explicit Game(Dungeon dungeon);
+        // Place les entités sur un étage déjà construit (utile pour les tests).
+        // seed : graine du hasard des sauts des adversaires
+        Game(Dungeon dungeon, const std::uint32_t seed);
 
         // Fait avancer la partie de elapsed : minuteries du joueur, activation des adversaires
         // de la salle du joueur, frappes des adversaires prêts, retrait des morts, fin de partie
@@ -75,8 +79,16 @@ export namespace core {
         // Active les adversaires de la salle où se trouve le joueur
         void ActivateHostilesInPlayerRoom();
 
-        // Fait avancer le compteur de hostile ; s'il est prêt, frappe sa zone puis le relance
+        // Fait avancer le compteur de hostile ; s'il est prêt, frappe sa zone, le relance et le fait sauter
         void UpdateHostile(Hostile& hostile, const Seconds elapsed);
+
+        // Fait sauter hostile sur une position libre de sa salle, à au plus maxHostileJump cases,
+        // la plus proche de sa distance préférée au joueur (au hasard parmi les meilleures).
+        // Reste sur place si aucune position ne convient.
+        void Jump(Hostile& hostile);
+
+        // Renvoie les cases occupées par le joueur et par les adversaires autres que self
+        std::vector<GridPos> TilesTakenByOthers(const Hostile& self) const;
 
         // Retire les ennemis morts et le boss mort
         void RemoveDead();
@@ -86,6 +98,7 @@ export namespace core {
         std::vector<std::unique_ptr<Enemy>> enemies;   // Seul propriétaire des ennemis
         std::optional<Boss> boss;
         GameState state{GameState::Playing};
+        std::mt19937 random;
     };
 
 }

@@ -110,7 +110,7 @@ python tools/GenerateSprites.py
 
 - La zone de déplacement du joueur s'affiche en bleu : cases atteignables en marchant (murs contournés) en au plus 4 pas.
 - Les ennemis et le boss sont des obstacles : le joueur ne peut ni s'arrêter sur leurs cases ni passer à travers. La sortie reste toujours accessible en contournant le boss.
-- Les ennemis ne bougent pas et ne combattent pas encore.
+- Les adversaires ne marchent pas : ils frappent leur zone à intervalle régulier puis sautent sur une autre case de leur salle.
 
 ### Génération et rendu
 
@@ -139,6 +139,7 @@ Portée et zones carrées mesurées en cases, diagonales comprises (distance de 
 
 - Joueur : chaque attaque a son propre cooldown ; après une attaque, il est immobilisé (colonne Immobilisation). En combat, deux déplacements sont espacés d'au moins 0,6 s.
 - Ennemis et boss (`Hostile`) : immobiles, leur compteur démarre quand le joueur entre dans leur salle (ou quand il les touche de loin) ; à 0, ils frappent leur zone puis le compteur repart.
+- Après chaque frappe, l'adversaire saute sur une case de sol libre de sa salle, à 3 cases au plus (jamais sur le joueur, un autre adversaire ou la sortie), en visant une distance au joueur qui lui permet de le toucher : 1 case pour le rapide, 2 pour le costaud, 3 pour le boss (qui saute avec ses 4 cases). Parmi les meilleures cases, le choix est tiré au hasard (reproductible avec la même graine).
 - `core::Game::Update(dt)` fait avancer la partie à chaque image (temps réel) : minuteries, activation, frappes, retrait des morts (`std::erase_if`), fin de partie (`GameState::GameOver`, sans écran pour l'instant).
 - Les adversaires attaquent déjà en jeu ; les commandes d'attaque du joueur (touches 1/2/3 et boutons) arrivent avec l'affichage du combat.
 

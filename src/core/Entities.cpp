@@ -101,11 +101,15 @@ namespace core {
 
     // ----- Hostile -----
 
-    Hostile::Hostile(const GridPos position, const int health, const Attack& attack)
-        : Entity{position, health}, attack{attack} {}
+    Hostile::Hostile(const GridPos position, const int health, const Attack& attack, const int preferredDistance)
+        : Entity{position, health}, attack{attack}, preferredDistance{preferredDistance} {}
 
     const Attack& Hostile::GetAttackType() const noexcept {
         return attack;
+    }
+
+    int Hostile::GetPreferredDistance() const noexcept {
+        return preferredDistance;
     }
 
     bool Hostile::IsActive() const noexcept {
@@ -144,7 +148,10 @@ namespace core {
     // ----- Enemy -----
 
     Enemy::Enemy(const GridPos position, const EnemyKind kind)
-        : Hostile{position, startHealth, kind == EnemyKind::Fast ? knifeStab : batSwing}, kind{kind} {}
+        : Hostile{position, startHealth,
+                  kind == EnemyKind::Fast ? knifeStab : batSwing,
+                  kind == EnemyKind::Fast ? fastPreferredDistance : heavyPreferredDistance},
+          kind{kind} {}
 
     EnemyKind Enemy::GetKind() const noexcept {
         return kind;
@@ -156,7 +163,7 @@ namespace core {
 
     // ----- Boss -----
 
-    Boss::Boss(const GridPos topLeft) : Hostile{topLeft, startHealth, shockwave} {}
+    Boss::Boss(const GridPos topLeft) : Hostile{topLeft, startHealth, shockwave, preferredDistance} {}
 
     std::string Boss::GetName() const {
         return "Chef de gang";

@@ -23,12 +23,13 @@ namespace core {
     }
 
     Game::Game(const std::uint32_t seed, const int width, const int height)
-        : Game{DungeonGenerator{seed}.Generate(width, height)} {}
+        : Game{DungeonGenerator{seed}.Generate(width, height), seed} {}
 
-    Game::Game(Dungeon dungeon)
+    Game::Game(Dungeon dungeon, const std::uint32_t seed)
         : dungeon{std::move(dungeon)},
           player{this->dungeon.playerStart},
-          boss{Boss{this->dungeon.bossPosition}} {
+          boss{Boss{this->dungeon.bossPosition}},
+          random{seed} {
         for (const auto& spawn : this->dungeon.enemySpawns) {
             enemies.push_back(std::make_unique<Enemy>(spawn.position, spawn.kind));
         }
@@ -171,6 +172,76 @@ namespace core {
             player.TakeDamage(hostile.GetAttackType().damage);
         }
         hostile.Rearm();
+        Jump(hostile);
+    }
+
+    void Game::Jump(Hostile& hostile) {
+        const auto current = hostile.GetPosition();
+        const auto room = RoomOf(current);
+        if (!room) {
+            return;
+        }
+        const auto& area = dungeon.rooms[*room];
+
+        // Forme de l'adversaire relative à sa position (1 case, ou 2x2 pour le boss)
+        auto footprint = std::vector<GridPos>{};
+        for (const auto& tile : hostile.OccupiedTiles()) {
+            footprint.push_back(GridPos{tile.x - current.x, tile.y - current.y});
+        }
+        const auto taken = TilesTakenByOthers(hostile);
+
+        // Positions possibles, notées par l'écart à la distance préférée au joueur (0 = idéal)
+        auto bestScore = std::numeric_limits<int>::max();
+        auto best = std::vector<GridPos>{};
+        for (auto y = area.GetY(); y < area.GetY() + area.GetHeight(); ++y) {
+            for (auto x = area.GetX(); x < area.GetX() + area.GetWidth(); ++x) {
+                const auto candidate = GridPos{x, y};
+                if (candidate == current || ChebyshevDistance(candidate, current) > maxHostileJump) {
+                    continue;
+                }
+                auto fits = true;
+                auto distanceToPlayer = std::numeric_limits<int>::max();
+                for (const auto& offset : footprint) {
+                    const auto tile = GridPos{candidate.x + offset.x, candidate.y + offset.y};
+                    // Sol libre de la salle (jamais la sortie, le joueur ou un autre adversaire)
+                    fits = fits && area.Contains(tile) && dungeon.grid.GetTile(tile) == TileType::Floor
+                           && !Contains(taken, tile);
+                    distanceToPlayer = std::min(distanceToPlayer, ChebyshevDistance(tile, player.GetPosition()));
+                }
+                if (!fits) {
+                    continue;
+                }
+                const auto score = std::abs(distanceToPlayer - hostile.GetPreferredDistance());
+                if (score < bestScore) {
+                    bestScore = score;
+                    best.clear();
+                }
+                if (score == bestScore) {
+                    best.push_back(candidate);
+                }
+            }
+        }
+        if (!best.empty()) {
+            const auto index = std::uniform_int_distribution<std::size_t>{0, best.size() - 1}(random);
+            hostile.SetPosition(best[index]);
+        }
+    }
+
+    std::vector<GridPos> Game::TilesTakenByOthers(const Hostile& self) const {
+        auto tiles = std::vector<GridPos>{player.GetPosition()};
+        const auto add = [&tiles, &self](const Hostile& other) {
+            if (&other != &self) {
+                const auto occupied = other.OccupiedTiles();
+                tiles.insert(tiles.end(), occupied.begin(), occupied.end());
+            }
+        };
+        for (const auto& enemy : enemies) {
+            add(*enemy);
+        }
+        if (boss) {
+            add(*boss);
+        }
+        return tiles;
     }
 
     void Game::RemoveDead() {

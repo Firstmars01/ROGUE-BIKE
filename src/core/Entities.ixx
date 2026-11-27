@@ -107,6 +107,9 @@ export namespace core {
         // Renvoie l'attaque utilisée
         const Attack& GetAttackType() const noexcept;
 
+        // Renvoie la distance au joueur visée quand l'adversaire saute après une frappe
+        int GetPreferredDistance() const noexcept;
+
         // Indique si le compteur tourne (le joueur est entré dans sa salle)
         bool IsActive() const noexcept;
 
@@ -129,11 +132,13 @@ export namespace core {
         virtual std::vector<GridPos> OccupiedTiles() const;
 
     protected:
-        // attack : attaque utilisée à chaque fin de compteur
-        Hostile(const GridPos position, const int health, const Attack& attack);
+        // attack : attaque utilisée à chaque fin de compteur ;
+        // preferredDistance : distance au joueur visée après chaque saut
+        Hostile(const GridPos position, const int health, const Attack& attack, const int preferredDistance);
 
     private:
         Attack attack;
+        int preferredDistance;
         Cooldown countdown{};
         bool active{false};
     };
@@ -148,6 +153,8 @@ export namespace core {
     class Enemy final : public Hostile {
     public:
         static constexpr int startHealth{75};
+        static constexpr int fastPreferredDistance{1};    // Rapide : colle au joueur (couteau)
+        static constexpr int heavyPreferredDistance{2};   // Costaud : reste plus loin (batte)
 
         // Crée un ennemi de type kind sur la case position
         Enemy(const GridPos position, const EnemyKind kind);
@@ -168,6 +175,7 @@ export namespace core {
     public:
         static constexpr int size{2};
         static constexpr int startHealth{1000};
+        static constexpr int preferredDistance{3};        // Portée de l'onde de choc
 
         // Crée le boss avec topLeft comme case en haut à gauche
         explicit Boss(const GridPos topLeft);
