@@ -17,7 +17,7 @@ export namespace ui {
         const core::Dungeon& dungeon;
         const core::Player& player;
         const std::vector<std::unique_ptr<core::Enemy>>& enemies;
-        const core::Boss& boss;
+        const std::optional<core::Boss>& boss;              // Vide si le boss est mort
         const std::vector<core::GridPos>& reachableTiles;   // Zone de déplacement du joueur
         std::optional<core::GridPos> hoveredTile;           // Case praticable sous la souris
     };

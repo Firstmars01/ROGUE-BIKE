@@ -125,6 +125,9 @@ export namespace core {
         // Renvoie le temps restant avant la prochaine frappe
         Seconds TimeBeforeStrike() const noexcept;
 
+        // Renvoie les cases occupées (une seule par défaut)
+        virtual std::vector<GridPos> OccupiedTiles() const;
+
     protected:
         // attack : attaque utilisée à chaque fin de compteur
         Hostile(const GridPos position, const int health, const Attack& attack);
@@ -173,7 +176,7 @@ export namespace core {
         std::string GetName() const override;
 
         // Renvoie les size x size cases occupées
-        std::vector<GridPos> OccupiedTiles() const;
+        std::vector<GridPos> OccupiedTiles() const override;
     };
 
 }

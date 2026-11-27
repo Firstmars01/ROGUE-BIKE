@@ -164,7 +164,7 @@ namespace ui {
 
         // Renvoie les cases qu'aucun immeuble ne doit cacher : joueur, ennemis, boss, case sous la souris
         std::vector<core::GridPos> ImportantTiles(const SceneView& scene) {
-            auto tiles = scene.boss.OccupiedTiles();
+            auto tiles = scene.boss ? scene.boss->OccupiedTiles() : std::vector<core::GridPos>{};
             tiles.push_back(scene.player.GetPosition());
             for (const auto& enemy : scene.enemies) {
                 tiles.push_back(enemy->GetPosition());
@@ -193,8 +193,6 @@ namespace ui {
         const auto& dungeon = scene.dungeon;
         const auto& grid = dungeon.grid;
         const auto importantTiles = ImportantTiles(scene);
-        const auto bossTopLeft = scene.boss.GetPosition();
-        const auto bossLastTile = core::GridPos{bossTopLeft.x + core::Boss::size - 1, bossTopLeft.y + core::Boss::size - 1};
 
         // Parcours par diagonales (sum = x + y), en gardant y = sum - x dans la grille
         for (auto sum = 0; sum <= grid.GetWidth() + grid.GetHeight() - 2; ++sum) {
@@ -244,9 +242,9 @@ namespace ui {
                     }
                 }
                 // Boss après sa dernière case, centré sur son carré (milieu de la première et de la dernière case)
-                if (pos == bossLastTile) {
-                    const auto first = GridToScreen(bossTopLeft, origin);
-                    DrawMarker(ScreenPos{(first.x + center.x) / 2.0f, (first.y + center.y) / 2.0f}, scene.boss, bossStyle);
+                if (scene.boss && pos == scene.boss->OccupiedTiles().back()) {
+                    const auto first = GridToScreen(scene.boss->GetPosition(), origin);
+                    DrawMarker(ScreenPos{(first.x + center.x) / 2.0f, (first.y + center.y) / 2.0f}, *scene.boss, bossStyle);
                 }
             }
         }

@@ -137,6 +137,10 @@ namespace core {
         return countdown.Remaining();
     }
 
+    std::vector<GridPos> Hostile::OccupiedTiles() const {
+        return std::vector<GridPos>{GetPosition()};
+    }
+
     // ----- Enemy -----
 
     Enemy::Enemy(const GridPos position, const EnemyKind kind)

@@ -34,12 +34,13 @@ Le joueur, un motard, parcourt des quartiers générés procéduralement (places
 │   │   ├── Attacks.ixx / Attacks.cpp                   # core.attacks : Attack, zones d'effet, ligne de vue, Cooldown
 │   │   ├── Pathfinding.ixx / Pathfinding.cpp           # core.pathfinding : ReachableTiles (parcours en largeur)
 │   │   ├── Entities.ixx / Entities.cpp                 # core.entities : Entity -> Player ; Entity -> Hostile -> Enemy, Boss
-│   │   └── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : Room, Dungeon, génération
+│   │   ├── DungeonGenerator.ixx / DungeonGenerator.cpp # core.dungeonGenerator : Room, Dungeon, génération
+│   │   └── Game.ixx / Game.cpp                         # core.game : règles d'une partie en temps réel
 │   ├── ui/                 # Bibliothèque rogueUi : affichage et entrées (seule partie qui utilise raylib)
 │   │   ├── IsoMath.ixx                       # ui.isoMath : projection grille <-> écran (constexpr)
 │   │   ├── Window.ixx / Window.cpp           # ui.window : fenêtre RAII + canevas virtuel 1920x1080
 │   │   ├── Renderer.ixx / Renderer.cpp       # ui.renderer : sprites (RAII), ordre du peintre, repères
-│   │   └── Application.ixx / Application.cpp # ui.application : boucle de jeu, souris, clavier
+│   │   └── Application.ixx / Application.cpp # ui.application : boucle, entrées, affichage d'une core::Game
 │   └── main.cpp            # Point d'entrée : crée l'application et la lance
 └── tests/                  # Tests unitaires Catch2 (logique du jeu + projection isométrique)
     ├── ConfigTests.cpp
@@ -48,7 +49,8 @@ Le joueur, un motard, parcourt des quartiers générés procéduralement (places
     ├── PathfindingTests.cpp
     ├── EntitiesTests.cpp
     ├── DungeonGeneratorTests.cpp
-    └── IsoMathTests.cpp
+    ├── IsoMathTests.cpp
+    └── GameTests.cpp
 ```
 
 ## Installation
@@ -122,7 +124,7 @@ python tools/GenerateSprites.py
 - Un immeuble qui cache le joueur, un ennemi, le boss ou la case visée devient à moitié transparent.
 - Le quartier de démo est toujours le même (graine fixe `dungeonSeed` dans `core.config`).
 
-### Attaques (modules `core.attacks` et `core.entities`, pas encore utilisées en jeu)
+### Attaques (modules `core.attacks`, `core.entities` et `core.game`)
 
 Portée et zones carrées mesurées en cases, diagonales comprises (distance de Tchebychev). Les murs bloquent la ligne de vue et la zone d'effet. Temps en secondes (`std::chrono`).
 
@@ -136,7 +138,9 @@ Portée et zones carrées mesurées en cases, diagonales comprises (distance de 
 | Boss | Onde de choc | autour de lui | carré de rayon 3 | 40 | 4 s | - |
 
 - Joueur : chaque attaque a son propre cooldown ; après une attaque, il est immobilisé (colonne Immobilisation). En combat, deux déplacements sont espacés d'au moins 0,6 s.
-- Ennemis et boss (`Hostile`) : immobiles, leur compteur ne démarre qu'une fois activés ; à 0, ils frappent leur zone puis le compteur repart.
+- Ennemis et boss (`Hostile`) : immobiles, leur compteur démarre quand le joueur entre dans leur salle (ou quand il les touche de loin) ; à 0, ils frappent leur zone puis le compteur repart.
+- `core::Game::Update(dt)` fait avancer la partie à chaque image (temps réel) : minuteries, activation, frappes, retrait des morts (`std::erase_if`), fin de partie (`GameState::GameOver`, sans écran pour l'instant).
+- Les adversaires attaquent déjà en jeu ; les commandes d'attaque du joueur (touches 1/2/3 et boutons) arrivent avec l'affichage du combat.
 
 ### Tests
 
